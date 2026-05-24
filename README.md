@@ -1,41 +1,102 @@
 # CareerOps
 
-CareerOps is a local-first, SQLite-centered system for collecting and browsing job descriptions.
+CareerOps is a local-first career operations toolkit for collecting, storing, and browsing job descriptions. It keeps job records in SQLite so local scripts, Codex workflows, a terminal UI, and future resume-generation tools can work from the same source of truth.
+
+The repository currently focuses on one durable domain object: `jobs`. Each job record stores the publish date, title, company, full source-backed description, canonical posting URL, salary range, local update timestamp, and creation timestamp.
+
+## What This Repository Is Used For
+
+- Keep a private SQLite database of job descriptions under `data/careerops.sqlite3` by default.
+- Import jobs from JSON files, one-off CLI arguments, or agent-produced job-description extracts.
+- Update existing jobs by URL instead of creating duplicate rows.
+- Search and inspect saved jobs from scripts or a curses-based terminal UI.
+- Backfill generated or email-summary descriptions with text fetched from the original job posting URL.
+- Clean known source-site navigation text, sign-in prompts, and footer chrome from stored descriptions.
+- Provide a project-local Codex skill at `codex-skills/add-job-description/SKILL.md` for adding job descriptions consistently.
+
+## Setup
+
+Run commands from the repository root.
+
+Use the module directly:
+
+```bash
+python -m careerops --help
+```
+
+Or install the console script in editable mode:
+
+```bash
+python -m pip install -e .
+careerops --help
+```
+
+By default, CareerOps writes to:
+
+```text
+data/careerops.sqlite3
+```
+
+Use another database with either `--db` or `CAREEROPS_DB`:
+
+```bash
+python -m careerops --db /tmp/careerops.sqlite3 init
+CAREEROPS_DB=/tmp/careerops.sqlite3 python -m careerops list-jobs
+```
 
 ## Quick Start
 
-Initialize a database:
+Initialize the database:
 
 ```bash
 python -m careerops init
 ```
 
-Add a job from JSON:
+Add a job from command-line fields:
 
 ```bash
-python -m careerops add-job --json job.json
+python -m careerops add-job \
+  --publish-date 2026-05-20 \
+  --title "Senior Software Engineer" \
+  --company "Example Systems" \
+  --description "Full job description text..." \
+  --url "https://example.com/jobs/123" \
+  --salary-range '$150k-$190k'
 ```
 
-Backfill generated/email-summary descriptions from job posting URLs:
+Add a job from a description file:
 
 ```bash
-python -m careerops backfill-descriptions --dry-run
-python -m careerops backfill-descriptions
-python -m careerops clean-descriptions
+python -m careerops add-job \
+  --title "Staff Platform Engineer" \
+  --company "Example Systems" \
+  --description-file /tmp/job-description.txt \
+  --url "https://example.com/jobs/platform-engineer"
 ```
 
-Open the terminal UI:
+List saved jobs:
 
 ```bash
 python -m careerops list-jobs
 ```
 
-When output is redirected or piped, `list-jobs` prints tab-separated rows.
-In the interactive list, press `o` to choose the sort column.
+Show one job in detail:
 
-By default the database lives at `data/careerops.sqlite3`. Set `CAREEROPS_DB` or pass `--db` to use another path.
+```bash
+python -m careerops show-job 1
+```
 
-## JSON Shape
+Open the terminal UI:
+
+```bash
+python -m careerops tui
+```
+
+`list-jobs` also opens the interactive list when stdin and stdout are both terminals. When output is redirected or piped, it prints tab-separated rows.
+
+## JSON Imports
+
+`add-job --json` accepts either one object or an array of objects.
 
 ```json
 {
@@ -48,6 +109,101 @@ By default the database lives at `data/careerops.sqlite3`. Set `CAREEROPS_DB` or
 }
 ```
 
-`last_update` is managed locally by CareerOps when a row is inserted or updated.
-Keep `description` source-backed: fetch the job posting page and store the original job description text instead of generated or summarized copy.
-If a fetched page includes source-site navigation text, `clean-descriptions` removes known chrome such as LinkedIn search, sign-in, and footer text from stored descriptions.
+Import one file:
+
+```bash
+python -m careerops add-job --json job.json
+```
+
+Import several jobs from one JSON array:
+
+```json
+[
+  {
+    "publish_date": "2026-05-20",
+    "job_title": "Senior Software Engineer",
+    "company_name": "Example Systems",
+    "description": "Full job description text...",
+    "url": "https://example.com/jobs/123",
+    "salary_range": "$150k-$190k"
+  },
+  {
+    "publish_date": "",
+    "job_title": "Engineering Manager",
+    "company_name": "Acme Labs",
+    "description": "Full job description text...",
+    "url": "https://acme.example/jobs/eng-manager",
+    "salary_range": ""
+  }
+]
+```
+
+CareerOps treats `job_title`, `company_name`, and `description` as required fields. `publish_date`, `url`, and `salary_range` can be empty strings when unknown. Do not provide `last_update`; CareerOps sets it locally when a row is inserted or updated.
+
+If a URL is present, importing the same URL again updates the existing row and refreshes `last_update`.
+
+## Browsing And Searching
+
+Search from the CLI:
+
+```bash
+python -m careerops list-jobs --query "platform"
+```
+
+Pipe tab-separated rows into another command:
+
+```bash
+python -m careerops list-jobs --query "remote" > /tmp/jobs.tsv
+```
+
+In the terminal UI:
+
+- Type to filter jobs by publish date, company, title, description, URL, or salary range.
+- Press `o` to choose a sort column.
+- Press Enter or Right to open details.
+- Press Up, Down, Page Up, Page Down, Home, or End to scroll.
+- Press Esc, `q`, or Left to go back or quit.
+
+## Maintaining Source-Backed Descriptions
+
+Keep `description` source-backed: store the original job posting text instead of generated or summarized copy.
+
+Preview backfills for older generated or email-summary descriptions:
+
+```bash
+python -m careerops backfill-descriptions --dry-run
+```
+
+Apply the backfill:
+
+```bash
+python -m careerops backfill-descriptions
+```
+
+Overwrite existing full descriptions when you intentionally want to refetch them from source URLs:
+
+```bash
+python -m careerops backfill-descriptions --overwrite
+```
+
+Clean already-stored source text that contains known site chrome:
+
+```bash
+python -m careerops clean-descriptions --dry-run
+python -m careerops clean-descriptions
+```
+
+The current cleaner handles known LinkedIn search, sign-in, pay-range widget, and footer text while preserving the job/company/role sections.
+
+## Repository Layout
+
+```text
+careerops/db.py          SQLite connection and schema setup
+careerops/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
+careerops/job_sources.py Job-posting fetch, extraction, and cleanup helpers
+careerops/cli.py         Command-line interface
+careerops/tui.py         curses-based job browser
+codex-skills/            Project-local Codex workflows
+docs/specs/              Design notes
+tests/                   Unit tests
+```
