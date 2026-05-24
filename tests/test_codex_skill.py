@@ -21,6 +21,7 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("salary_range", body)
         self.assertIn("publish_date", body)
         self.assertIn("last_update", body)
+        self.assertIn("not a Gmail", body)
 
 
 if __name__ == "__main__":

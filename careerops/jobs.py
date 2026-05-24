@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import sqlite3
+from urllib.parse import urlparse
 
 
 @dataclass(frozen=True)
@@ -160,6 +161,8 @@ def _validate(job: JobInput) -> JobInput:
     ]
     if missing:
         raise ValueError(f"Missing required job fields: {', '.join(missing)}")
+    if _is_gmail_url(normalized.url):
+        raise ValueError("url must be the job posting URL, not a Gmail thread URL")
     return normalized
 
 
@@ -175,3 +178,10 @@ def _text(value: object) -> str:
     if value is None:
         return ""
     return str(value)
+
+
+def _is_gmail_url(value: str) -> bool:
+    if not value:
+        return False
+    parsed = urlparse(value)
+    return parsed.netloc.lower() in {"mail.google.com", "gmail.com"}

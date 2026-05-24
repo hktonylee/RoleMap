@@ -57,5 +57,6 @@ careerops add-job --json /path/to/job.json
 
 - Keep claims source-grounded; do not invent salary, publish date, or URL.
 - Prefer the canonical company posting URL over aggregator URLs.
+- For email sources, extract the job posting link from the email body; `url` must be the job posting URL, not a Gmail thread URL.
 - If the job text includes multiple roles, ask which one to add unless the user already named the role.
 - If the same `url` is imported again, CareerOps updates that row and refreshes `last_update`.

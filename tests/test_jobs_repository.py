@@ -138,6 +138,19 @@ class JobRepositoryTest(unittest.TestCase):
                 )
             )
 
+    def test_validation_rejects_gmail_thread_url(self) -> None:
+        with self.assertRaisesRegex(ValueError, "url must be the job posting URL"):
+            self.repository.add_or_update(
+                JobInput(
+                    publish_date="2026-05-24",
+                    job_title="Application and Product Security Principal",
+                    company_name="Global Relay",
+                    description="Source: Indeed job alert email.",
+                    url="https://mail.google.com/mail/#all/19e5a1eac3590391",
+                    salary_range="$125,000 - $160,000 a year",
+                )
+            )
+
 
 class DatabaseConnectionTest(unittest.TestCase):
     def test_connect_returns_sqlite_rows_by_name(self) -> None:
