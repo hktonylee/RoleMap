@@ -182,7 +182,7 @@ class _JobBrowser:
         height, width = self.stdscr.getmaxyx()
         title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
         self._add_line(0, 0, title, width, curses.A_BOLD)
-        self._add_line(1, 0, "Esc/q/Left back  Up/Down scroll", width)
+        self._add_line(1, 0, "Esc/q/Left back  Up/Down/PgUp/PgDn scroll", width)
 
         lines = [
             f"ID: {_row_text(row, 'id')}",
@@ -240,6 +240,13 @@ class _JobBrowser:
     def _handle_detail_key(self, key: int) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
+            return False
+        page_step = max(1, (self.stdscr.getmaxyx()[0] - 3) // 2)
+        if key == curses.KEY_NPAGE:
+            self.detail_scroll += page_step
+            return False
+        if key == curses.KEY_PPAGE:
+            self.detail_scroll = max(0, self.detail_scroll - page_step)
             return False
         if key == curses.KEY_DOWN:
             self.detail_scroll += 1

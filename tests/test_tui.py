@@ -18,6 +18,14 @@ class FakeScreen:
         return (24, 80)
 
 
+class RecordingScreen(FakeScreen):
+    def __init__(self) -> None:
+        self.lines: dict[int, str] = {}
+
+    def addstr(self, y: int, x: int, text: str, attrs: int = curses.A_NORMAL) -> None:
+        self.lines[y] = text
+
+
 class TuiListFormattingTest(unittest.TestCase):
     def test_list_row_uses_requested_column_order_without_job_id(self) -> None:
         row = {
@@ -134,6 +142,41 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "list")
+
+    def test_page_down_and_page_up_scroll_detail_by_half_screen(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(curses.KEY_NPAGE)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.detail_scroll, 10)
+
+        should_quit = browser._handle_detail_key(curses.KEY_PPAGE)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.detail_scroll, 0)
+
+
+class JobBrowserDetailViewTest(unittest.TestCase):
+    def test_detail_help_names_page_scroll_keys(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "publish_date": "2026-05-24",
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "url": "https://example.com/jobs/staff",
+                "salary_range": "$180k-$220k",
+                "last_update": "2026-05-24T12:20:01-07:00",
+                "description": "Build systems.",
+            }
+        )
+
+        self.assertIn("PgUp/PgDn", screen.lines[1])
 
 
 if __name__ == "__main__":
