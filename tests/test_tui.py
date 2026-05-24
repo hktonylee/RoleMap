@@ -150,7 +150,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         should_quit = browser._handle_detail_key(curses.KEY_NPAGE)
 
         self.assertFalse(should_quit)
-        self.assertEqual(browser.detail_scroll, 10)
+        self.assertEqual(browser.detail_scroll, 7)
 
         should_quit = browser._handle_detail_key(curses.KEY_PPAGE)
 
@@ -201,6 +201,39 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
+
+    def test_detail_basic_info_stays_visible_while_description_scrolls(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.detail_scroll = 2
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "publish_date": "2026-05-24",
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "url": "https://example.com/jobs/staff",
+                "salary_range": "$180k-$220k",
+                "last_update": "2026-05-24T12:20:01-07:00",
+                "description": "\n".join(
+                    [
+                        "First description line.",
+                        "Second description line.",
+                        "Third description line.",
+                    ]
+                ),
+            }
+        )
+
+        rendered = "\n".join(screen.lines.values())
+        self.assertIn("ID: 42", rendered)
+        self.assertIn("Publish date: 2026-05-24", rendered)
+        self.assertIn("URL: https://example.com/jobs/staff", rendered)
+        self.assertIn("Salary range: $180k-$220k", rendered)
+        self.assertIn("Last update: 2026-05-24T12:20:01-07:00", rendered)
+        self.assertNotIn("First description line.", rendered)
+        self.assertIn("Third description line.", rendered)
 
 
 if __name__ == "__main__":
