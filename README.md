@@ -21,6 +21,7 @@ Backfill generated/email-summary descriptions from job posting URLs:
 ```bash
 python -m careerops backfill-descriptions --dry-run
 python -m careerops backfill-descriptions
+python -m careerops clean-descriptions
 ```
 
 Open the terminal UI:
@@ -49,3 +50,4 @@ By default the database lives at `data/careerops.sqlite3`. Set `CAREEROPS_DB` or
 
 `last_update` is managed locally by CareerOps when a row is inserted or updated.
 Keep `description` source-backed: fetch the job posting page and store the original job description text instead of generated or summarized copy.
+If a fetched page includes source-site navigation text, `clean-descriptions` removes known chrome such as LinkedIn search, sign-in, and footer text from stored descriptions.

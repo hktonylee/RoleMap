@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from html.parser import HTMLParser
 import json
 import re
@@ -23,8 +24,15 @@ def fetch_source_description(url: str) -> str:
 def extract_source_description(html: str) -> str:
     json_ld_description = _extract_json_ld_job_description(html)
     if json_ld_description:
-        return json_ld_description
-    return _normalize_text(_VisibleTextParser.parse(html))
+        return clean_source_description(json_ld_description)
+    return clean_source_description(_VisibleTextParser.parse(html))
+
+
+def clean_source_description(value: str) -> str:
+    text = _normalize_text(value)
+    text = _strip_linkedin_chrome(text)
+    text = _remove_known_site_lines(text)
+    return _normalize_text(text)
 
 
 def _extract_json_ld_job_description(html: str) -> str:
@@ -62,6 +70,134 @@ def _find_jobposting_description(data: object) -> str:
 
 def _html_to_text(value: str) -> str:
     return _normalize_text(_VisibleTextParser.parse(value))
+
+
+def _strip_linkedin_chrome(value: str) -> str:
+    paragraphs = _paragraphs(value)
+    if not _looks_like_linkedin_text(paragraphs):
+        return value
+
+    if "Report this job" in paragraphs:
+        paragraphs = paragraphs[paragraphs.index("Report this job") + 1 :]
+
+    end_index = _first_index(paragraphs, _is_linkedin_trailing_marker)
+    if end_index is not None:
+        paragraphs = paragraphs[:end_index]
+
+    cookie_index = _last_index(
+        paragraphs,
+        lambda paragraph: paragraph.startswith("By clicking Continue")
+        and "Cookie Policy" in paragraph,
+    )
+    if cookie_index is not None:
+        paragraphs = paragraphs[cookie_index + 1 :]
+
+    while paragraphs and _is_linkedin_leading_boilerplate(paragraphs[0]):
+        paragraphs = paragraphs[1:]
+
+    if paragraphs and paragraphs[0].endswith("provided pay range"):
+        jd_start_index = _first_index(paragraphs, _is_probable_jd_start)
+        if jd_start_index is not None:
+            paragraphs = paragraphs[jd_start_index:]
+
+    return "\n\n".join(paragraphs)
+
+
+def _paragraphs(value: str) -> list[str]:
+    return [paragraph.strip() for paragraph in re.split(r"\n\s*\n", value) if paragraph.strip()]
+
+
+def _looks_like_linkedin_text(paragraphs: list[str]) -> bool:
+    return "LinkedIn" in paragraphs or "Report this job" in paragraphs
+
+
+def _is_linkedin_leading_boilerplate(paragraph: str) -> bool:
+    boilerplate = {
+        "Use AI to assess how you fit",
+        "Get AI-powered advice on this job and more exclusive features.",
+        "Am I a good fit for this job?",
+        "Tailor my resume",
+        "Sign in to access AI-powered advices",
+        "Sign in to evaluate your skills",
+        "Sign in to tailor your resume",
+        "Email or phone",
+        "Password",
+        "Show",
+        "Forgot password?",
+        "Sign in",
+        "Sign in with Email",
+        "or",
+        "New to LinkedIn? Join now",
+        "Save",
+        "Apply",
+    }
+    return paragraph in boilerplate or paragraph.startswith("By clicking Continue")
+
+
+def _is_linkedin_trailing_marker(paragraph: str) -> bool:
+    markers = {
+        "Show more",
+        "Show less",
+        "Seniority level",
+        "Employment type",
+        "Job function",
+        "Industries",
+        "Referrals increase your chances of interviewing",
+        "Similar jobs",
+    }
+    return paragraph in markers or paragraph.startswith("Referrals increase your chances")
+
+
+def _is_probable_jd_start(paragraph: str) -> bool:
+    starts = {
+        "About The Company",
+        "About The Team",
+        "About The Role",
+        "Company Overview",
+        "Overview",
+        "Position Overview",
+        "The Role",
+        "What You'll Do",
+        "Who We Are",
+        "WHO WE ARE",
+    }
+    return paragraph in starts
+
+
+def _remove_known_site_lines(value: str) -> str:
+    removed = {
+        "Skip to main content",
+        "Expand search",
+        "This button displays the currently selected search type.",
+        "When expanded it provides a list of search options that will switch the search inputs to match the current selection.",
+        "Jobs",
+        "People",
+        "Learning",
+        "Clear text",
+    }
+    return "\n\n".join(
+        paragraph for paragraph in _paragraphs(value) if paragraph not in removed
+    )
+
+
+def _first_index(
+    values: list[str],
+    predicate: Callable[[str], bool],
+) -> int | None:
+    for index, value in enumerate(values):
+        if predicate(value):
+            return index
+    return None
+
+
+def _last_index(
+    values: list[str],
+    predicate: Callable[[str], bool],
+) -> int | None:
+    for index in range(len(values) - 1, -1, -1):
+        if predicate(values[index]):
+            return index
+    return None
 
 
 def _normalize_text(value: str) -> str:

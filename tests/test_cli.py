@@ -6,7 +6,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from careerops.cli import _handle_backfill_descriptions, _handle_list_jobs
+from careerops.cli import (
+    _handle_backfill_descriptions,
+    _handle_clean_descriptions,
+    _handle_list_jobs,
+)
 from careerops.db import connect, initialize_database
 from careerops.jobs import JobInput, JobRepository
 
@@ -140,6 +144,43 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
         self.assertEqual(
             self.repository.get(search_page_id)["description"],
             "Source: Indeed job alert email. Email subject: Frontend Engineer.",
+        )
+
+    def test_clean_descriptions_removes_site_text_from_existing_rows(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-24",
+                job_title="Backend Engineer",
+                company_name="Example Systems",
+                description=(
+                    "Skip to main content\n\n"
+                    "Expand search\n\n"
+                    "Report this job\n\n"
+                    "Overview\n\n"
+                    "Build reliable services.\n\n"
+                    "Show more\n\n"
+                    "Seniority level"
+                ),
+                url="https://www.linkedin.com/jobs/view/123/",
+                salary_range="",
+            )
+        )
+        args = argparse.Namespace(dry_run=False, limit=0, min_length=20)
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with (
+            patch.object(sys, "stdout", stdout),
+            patch.object(sys, "stderr", stderr),
+        ):
+            exit_code = _handle_clean_descriptions(args, self.repository)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stdout.getvalue().strip(), str(job_id))
+        self.assertEqual(stderr.getvalue().strip(), "Cleaned 1 descriptions")
+        self.assertEqual(
+            self.repository.get(job_id)["description"],
+            "Overview\n\nBuild reliable services.",
         )
 
 

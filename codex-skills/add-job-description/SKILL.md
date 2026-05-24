@@ -63,5 +63,6 @@ careerops add-job --json /path/to/job.json
 - For email sources, extract the job posting link from the email body; `url` must be the job posting URL, not a Gmail thread URL.
 - For email sources, follow the posting link and backfill `description` from the source website before treating the row as complete.
 - To replace older generated/email-summary descriptions, run `python -m careerops backfill-descriptions` against the target database. Use `--dry-run` first when you want to preview which source URLs can be fetched.
+- If fetched source text includes site chrome such as `Skip to main content`, `Expand search`, sign-in prompts, or footers, run `python -m careerops clean-descriptions` to remove known non-JD text from stored descriptions.
 - If the job text includes multiple roles, ask which one to add unless the user already named the role.
 - If the same `url` is imported again, CareerOps updates that row and refreshes `last_update`.

@@ -47,6 +47,7 @@ CLI commands:
 - `careerops add-job --json FILE`
 - `careerops add-job --title ... --company ... --description ...`
 - `careerops backfill-descriptions [--dry-run] [--overwrite]`
+- `careerops clean-descriptions [--dry-run]`
 - `careerops list-jobs`
 - `careerops show-job ID`
 - `careerops tui`
@@ -59,6 +60,8 @@ Validation rejects missing title, company, description, and malformed empty JSON
 
 `description` should contain source-backed job posting text, not agent-generated summaries. Backfill replaces generated-looking descriptions with text pulled from the stored source URL; by default it only touches descriptions that start with `Source: ` so manually curated full descriptions are preserved.
 
+Source extraction should remove non-JD site chrome where possible. The cleaner strips known LinkedIn navigation, search, sign-in, pay-range widget, and footer text while preserving the actual job/company/role sections.
+
 ## Tests
 
 Initial tests cover:
@@ -67,5 +70,6 @@ Initial tests cover:
 - Adding a job writes required fields and sets local timestamps.
 - Adding the same URL updates the existing row instead of duplicating it.
 - Backfilling generated descriptions updates the row from source URL text without overwriting manual full descriptions by default.
+- Cleaning descriptions removes known source-site chrome from already-stored descriptions.
 - Search returns jobs across title, company, description, URL, salary, and publish date.
 - The Codex skill document exists and names the required add-job workflow.

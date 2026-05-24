@@ -10,7 +10,7 @@ from typing import Sequence
 from urllib.parse import urlparse
 
 from careerops.db import connect, initialize_database
-from careerops.job_sources import fetch_source_description
+from careerops.job_sources import clean_source_description, fetch_source_description
 from careerops.jobs import JobInput, JobRepository
 
 
@@ -71,6 +71,15 @@ def _build_parser() -> argparse.ArgumentParser:
     backfill_parser.add_argument("--min-length", type=int, default=120)
     backfill_parser.add_argument("--overwrite", action="store_true")
     backfill_parser.set_defaults(handler=_handle_backfill_descriptions)
+
+    clean_parser = subparsers.add_parser(
+        "clean-descriptions",
+        help="remove source-site navigation text from stored descriptions",
+    )
+    clean_parser.add_argument("--dry-run", action="store_true")
+    clean_parser.add_argument("--limit", type=int, default=0)
+    clean_parser.add_argument("--min-length", type=int, default=120)
+    clean_parser.set_defaults(handler=_handle_clean_descriptions)
 
     tui_parser = subparsers.add_parser("tui", help="open the interactive TUI")
     tui_parser.set_defaults(handler=_handle_tui)
@@ -169,6 +178,38 @@ def _handle_backfill_descriptions(args: argparse.Namespace, repository: JobRepos
 
     print(f"Backfilled {updated} descriptions", file=sys.stderr)
     return 0
+
+
+def _handle_clean_descriptions(args: argparse.Namespace, repository: JobRepository) -> int:
+    updated = _clean_descriptions(args, repository)
+    print(f"Cleaned {updated} descriptions", file=sys.stderr)
+    return 0
+
+
+def _clean_descriptions(args: argparse.Namespace, repository: JobRepository) -> int:
+    updated = 0
+    for row in repository.list():
+        if args.limit and updated >= args.limit:
+            break
+        original = str(row["description"] or "")
+        if _looks_generated_description(original):
+            continue
+
+        cleaned = clean_source_description(original)
+        if cleaned == original.strip():
+            continue
+        if len(cleaned) < args.min_length:
+            print(f"skipped {row['id']}: cleaned description is too short", file=sys.stderr)
+            continue
+
+        if args.dry_run:
+            preview = " ".join(cleaned.split())[:160]
+            print(f"{row['id']}\t{len(original)}\t{len(cleaned)}\t{preview}")
+        else:
+            repository.update_description(int(row["id"]), cleaned)
+            print(row["id"])
+        updated += 1
+    return updated
 
 
 def _handle_tui(args: argparse.Namespace, repository: JobRepository) -> int:
