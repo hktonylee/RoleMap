@@ -49,7 +49,7 @@ CLI commands:
 - `careerops show-job ID`
 - `careerops tui`
 
-The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
+The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing `o` opens a sort-column selector for the list. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
 
 ## Error Handling
 

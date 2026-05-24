@@ -3,7 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import sqlite3
+from typing import Protocol, TypeAlias
 from urllib.parse import urlparse
+
+
+class JobRow(Protocol):
+    def __getitem__(self, key: str) -> object: ...
+
+
+JobRows: TypeAlias = list[sqlite3.Row]
 
 
 @dataclass(frozen=True)
@@ -63,7 +71,9 @@ class JobRepository:
                 ),
             )
             self.connection.commit()
-            return int(cursor.lastrowid)
+            if cursor.lastrowid is None:
+                raise sqlite3.DatabaseError("failed to read inserted job id")
+            return cursor.lastrowid
 
         self.connection.execute(
             """
@@ -97,7 +107,7 @@ class JobRepository:
             (job_id,),
         ).fetchone()
 
-    def list(self) -> list[sqlite3.Row]:
+    def list(self) -> JobRows:
         return list(
             self.connection.execute(
                 """
@@ -107,7 +117,7 @@ class JobRepository:
             ).fetchall()
         )
 
-    def search(self, query: str) -> list[sqlite3.Row]:
+    def search(self, query: str) -> JobRows:
         needle = query.strip()
         if not needle:
             return self.list()

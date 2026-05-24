@@ -81,6 +81,12 @@ def _handle_add_job(args: argparse.Namespace, repository: JobRepository) -> int:
 
 
 def _handle_list_jobs(args: argparse.Namespace, repository: JobRepository) -> int:
+    if _should_use_interactive_list():
+        from careerops.tui import run
+
+        run(repository, initial_query=args.query)
+        return 0
+
     rows = repository.search(args.query) if args.query else repository.list()
     for row in rows:
         print(
@@ -97,6 +103,10 @@ def _handle_list_jobs(args: argparse.Namespace, repository: JobRepository) -> in
             )
         )
     return 0
+
+
+def _should_use_interactive_list() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
 
 
 def _handle_show_job(args: argparse.Namespace, repository: JobRepository) -> int:

@@ -19,8 +19,11 @@ python -m careerops add-job --json job.json
 Open the terminal UI:
 
 ```bash
-python -m careerops tui
+python -m careerops list-jobs
 ```
+
+When output is redirected or piped, `list-jobs` prints tab-separated rows.
+In the interactive list, press `o` to choose the sort column.
 
 By default the database lives at `data/careerops.sqlite3`. Set `CAREEROPS_DB` or pass `--db` to use another path.
 
