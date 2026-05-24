@@ -16,6 +16,13 @@ Add a job from JSON:
 python -m careerops add-job --json job.json
 ```
 
+Backfill generated/email-summary descriptions from job posting URLs:
+
+```bash
+python -m careerops backfill-descriptions --dry-run
+python -m careerops backfill-descriptions
+```
+
 Open the terminal UI:
 
 ```bash
@@ -41,3 +48,4 @@ By default the database lives at `data/careerops.sqlite3`. Set `CAREEROPS_DB` or
 ```
 
 `last_update` is managed locally by CareerOps when a row is inserted or updated.
+Keep `description` source-backed: fetch the job posting page and store the original job description text instead of generated or summarized copy.

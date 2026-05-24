@@ -107,6 +107,24 @@ class JobRepository:
             (job_id,),
         ).fetchone()
 
+    def update_description(self, job_id: int, description: str) -> None:
+        normalized = description.strip()
+        if not normalized:
+            raise ValueError("description must not be empty")
+
+        cursor = self.connection.execute(
+            """
+            UPDATE jobs
+            SET description = ?,
+                last_update = ?
+            WHERE id = ?
+            """,
+            (normalized, _local_timestamp(), job_id),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Job not found: {job_id}")
+        self.connection.commit()
+
     def list(self) -> JobRows:
         return list(
             self.connection.execute(

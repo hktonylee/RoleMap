@@ -7,8 +7,10 @@ from pathlib import Path
 import sqlite3
 import sys
 from typing import Sequence
+from urllib.parse import urlparse
 
 from careerops.db import connect, initialize_database
+from careerops.job_sources import fetch_source_description
 from careerops.jobs import JobInput, JobRepository
 
 
@@ -59,6 +61,16 @@ def _build_parser() -> argparse.ArgumentParser:
     show_parser = subparsers.add_parser("show-job", help="show job details")
     show_parser.add_argument("id", type=int)
     show_parser.set_defaults(handler=_handle_show_job)
+
+    backfill_parser = subparsers.add_parser(
+        "backfill-descriptions",
+        help="replace generated descriptions with text fetched from source URLs",
+    )
+    backfill_parser.add_argument("--dry-run", action="store_true")
+    backfill_parser.add_argument("--limit", type=int, default=0)
+    backfill_parser.add_argument("--min-length", type=int, default=120)
+    backfill_parser.add_argument("--overwrite", action="store_true")
+    backfill_parser.set_defaults(handler=_handle_backfill_descriptions)
 
     tui_parser = subparsers.add_parser("tui", help="open the interactive TUI")
     tui_parser.set_defaults(handler=_handle_tui)
@@ -117,6 +129,48 @@ def _handle_show_job(args: argparse.Namespace, repository: JobRepository) -> int
     return 0
 
 
+def _handle_backfill_descriptions(args: argparse.Namespace, repository: JobRepository) -> int:
+    attempted = 0
+    updated = 0
+    for row in repository.list():
+        url = str(row["url"] or "")
+        if not url:
+            continue
+        if not _looks_like_job_posting_url(url):
+            print(
+                f"skipped {row['id']}: source URL does not look like a job posting",
+                file=sys.stderr,
+            )
+            continue
+        if not args.overwrite and not _looks_generated_description(str(row["description"])):
+            continue
+        if args.limit and attempted >= args.limit:
+            break
+
+        attempted += 1
+        try:
+            description = fetch_source_description(url).strip()
+        except OSError as exc:
+            print(f"skipped {row['id']}: {exc}", file=sys.stderr)
+            continue
+
+        if len(description) < args.min_length:
+            print(f"skipped {row['id']}: fetched description is too short", file=sys.stderr)
+            continue
+
+        if args.dry_run:
+            preview = " ".join(description.split())[:160]
+            print(f"{row['id']}\t{len(description)}\t{url}\t{preview}")
+            continue
+
+        repository.update_description(int(row["id"]), description)
+        updated += 1
+        print(row["id"])
+
+    print(f"Backfilled {updated} descriptions", file=sys.stderr)
+    return 0
+
+
 def _handle_tui(args: argparse.Namespace, repository: JobRepository) -> int:
     del args
     from careerops.tui import run
@@ -166,3 +220,21 @@ def _format_job(row: sqlite3.Row) -> str:
         ("Description", row["description"]),
     ]
     return "\n".join(f"{label}: {value or ''}" for label, value in fields)
+
+
+def _looks_generated_description(value: str) -> bool:
+    return value.lstrip().startswith("Source: ")
+
+
+def _looks_like_job_posting_url(value: str) -> bool:
+    parsed = urlparse(value)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
+
+    if "indeed." in host:
+        return path == "/viewjob"
+    if "linkedin." in host:
+        return path.startswith("/jobs/view/")
+    if "glassdoor." in host:
+        return path.startswith("/partner/joblisting") or path.startswith("/job-listing/")
+    return True
