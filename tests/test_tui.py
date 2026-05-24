@@ -157,6 +157,30 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.detail_scroll, 0)
 
+    def test_home_and_end_scroll_detail_to_top_and_bottom(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "url": "https://example.com/jobs/staff",
+            "salary_range": "$180k-$220k",
+            "last_update": "2026-05-24T12:20:01-07:00",
+            "description": "\n".join(f"Line {index}" for index in range(30)),
+        }
+
+        should_quit = browser._handle_detail_key(curses.KEY_END, row)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.detail_scroll, 16)
+
+        should_quit = browser._handle_detail_key(curses.KEY_HOME, row)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.detail_scroll, 0)
+
 
 class JobBrowserDetailViewTest(unittest.TestCase):
     def test_detail_help_names_page_scroll_keys(self) -> None:
@@ -176,7 +200,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             }
         )
 
-        self.assertIn("PgUp/PgDn", screen.lines[1])
+        self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
 
 
 if __name__ == "__main__":

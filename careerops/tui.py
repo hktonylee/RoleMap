@@ -105,6 +105,21 @@ def _format_cell(value: object, width: int) -> str:
     return text.ljust(width)
 
 
+def _detail_lines(row: JobRow, width: int) -> list[str]:
+    lines = [
+        f"ID: {_row_text(row, 'id')}",
+        f"Publish date: {_row_text(row, 'publish_date')}",
+        f"URL: {_row_text(row, 'url')}",
+        f"Salary range: {_row_text(row, 'salary_range')}",
+        f"Last update: {_row_text(row, 'last_update')}",
+        "",
+        "Description:",
+    ]
+    for paragraph in _row_text(row, "description").splitlines() or [""]:
+        lines.extend(textwrap.wrap(paragraph, width=max(20, width - 2)) or [""])
+    return lines
+
+
 class _JobBrowser:
     def __init__(
         self,
@@ -134,7 +149,8 @@ class _JobBrowser:
                 return
             if self.mode == "sort" and self._handle_sort_key(key):
                 return
-            if self.mode == "detail" and self._handle_detail_key(key):
+            row = rows[self.selected] if self.mode == "detail" and rows else None
+            if self.mode == "detail" and self._handle_detail_key(key, row):
                 return
 
     def _draw(self, rows: Sequence[JobRow]) -> None:
@@ -182,20 +198,9 @@ class _JobBrowser:
         height, width = self.stdscr.getmaxyx()
         title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
         self._add_line(0, 0, title, width, curses.A_BOLD)
-        self._add_line(1, 0, "Esc/q/Left back  Up/Down/PgUp/PgDn scroll", width)
+        self._add_line(1, 0, "Esc/q/Left back  Up/Down/PgUp/PgDn/Home/End scroll", width)
 
-        lines = [
-            f"ID: {_row_text(row, 'id')}",
-            f"Publish date: {_row_text(row, 'publish_date')}",
-            f"URL: {_row_text(row, 'url')}",
-            f"Salary range: {_row_text(row, 'salary_range')}",
-            f"Last update: {_row_text(row, 'last_update')}",
-            "",
-            "Description:",
-        ]
-        for paragraph in _row_text(row, "description").splitlines() or [""]:
-            lines.extend(textwrap.wrap(paragraph, width=max(20, width - 2)) or [""])
-
+        lines = _detail_lines(row, width)
         visible = lines[self.detail_scroll : self.detail_scroll + max(0, height - 3)]
         for index, line in enumerate(visible, start=3):
             self._add_line(index, 0, line, width)
@@ -237,16 +242,24 @@ class _JobBrowser:
         self.mode = "list"
         return False
 
-    def _handle_detail_key(self, key: int) -> bool:
+    def _handle_detail_key(self, key: int, row: JobRow | None = None) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
             return False
-        page_step = max(1, (self.stdscr.getmaxyx()[0] - 3) // 2)
+        height, width = self.stdscr.getmaxyx()
+        visible_height = max(0, height - 3)
+        page_step = max(1, visible_height // 2)
         if key == curses.KEY_NPAGE:
             self.detail_scroll += page_step
             return False
         if key == curses.KEY_PPAGE:
             self.detail_scroll = max(0, self.detail_scroll - page_step)
+            return False
+        if key == curses.KEY_HOME:
+            self.detail_scroll = 0
+            return False
+        if key == curses.KEY_END and row is not None:
+            self.detail_scroll = max(0, len(_detail_lines(row, width)) - visible_height)
             return False
         if key == curses.KEY_DOWN:
             self.detail_scroll += 1
