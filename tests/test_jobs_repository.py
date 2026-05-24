@@ -1,0 +1,157 @@
+import sqlite3
+import tempfile
+import unittest
+from pathlib import Path
+
+from careerops.db import connect, initialize_database
+from careerops.jobs import JobInput, JobRepository
+
+
+class JobRepositoryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.db_path = Path(self.temp_dir.name) / "careerops.sqlite3"
+        self.connection = connect(self.db_path)
+        self.addCleanup(self.connection.close)
+        initialize_database(self.connection)
+        self.repository = JobRepository(self.connection)
+
+    def test_schema_includes_required_job_columns(self) -> None:
+        columns = {
+            row["name"]
+            for row in self.connection.execute("PRAGMA table_info(jobs)").fetchall()
+        }
+
+        self.assertGreaterEqual(
+            columns,
+            {
+                "publish_date",
+                "job_title",
+                "company_name",
+                "description",
+                "url",
+                "salary_range",
+                "last_update",
+            },
+        )
+
+    def test_add_job_writes_fields_and_local_timestamps(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Senior Software Engineer",
+                company_name="Example Systems",
+                description="Build internal systems and tooling.",
+                url="https://example.com/jobs/123",
+                salary_range="$150k-$190k",
+            )
+        )
+
+        row = self.repository.get(job_id)
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row["publish_date"], "2026-05-20")
+        self.assertEqual(row["job_title"], "Senior Software Engineer")
+        self.assertEqual(row["company_name"], "Example Systems")
+        self.assertEqual(row["description"], "Build internal systems and tooling.")
+        self.assertEqual(row["url"], "https://example.com/jobs/123")
+        self.assertEqual(row["salary_range"], "$150k-$190k")
+        self.assertRegex(row["last_update"], r"^\d{4}-\d{2}-\d{2}T")
+        self.assertRegex(row["created_at"], r"^\d{4}-\d{2}-\d{2}T")
+
+    def test_same_url_updates_existing_job(self) -> None:
+        first_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Backend Engineer",
+                company_name="Example Systems",
+                description="Original description.",
+                url="https://example.com/jobs/456",
+                salary_range="$140k-$170k",
+            )
+        )
+        second_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-21",
+                job_title="Backend Engineer, Platform",
+                company_name="Example Systems",
+                description="Updated description with platform ownership.",
+                url="https://example.com/jobs/456",
+                salary_range="$145k-$175k",
+            )
+        )
+
+        rows = self.repository.list()
+
+        self.assertEqual(first_id, second_id)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["publish_date"], "2026-05-21")
+        self.assertEqual(rows[0]["job_title"], "Backend Engineer, Platform")
+        self.assertIn("platform ownership", rows[0]["description"])
+
+    def test_search_matches_core_job_fields(self) -> None:
+        self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Infrastructure Engineer",
+                company_name="Northstar",
+                description="Own deployment automation.",
+                url="https://northstar.example/jobs/infra",
+                salary_range="$160k-$200k",
+            )
+        )
+        self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-22",
+                job_title="Product Engineer",
+                company_name="Southline",
+                description="Build customer-facing workflows.",
+                url="https://southline.example/jobs/product",
+                salary_range="$120k-$150k",
+            )
+        )
+
+        self.assertEqual(
+            [row["company_name"] for row in self.repository.search("automation")],
+            ["Northstar"],
+        )
+        self.assertEqual(
+            [row["job_title"] for row in self.repository.search("southline")],
+            ["Product Engineer"],
+        )
+        self.assertEqual(
+            [row["job_title"] for row in self.repository.search("$160k")],
+            ["Infrastructure Engineer"],
+        )
+
+    def test_validation_rejects_missing_required_text(self) -> None:
+        with self.assertRaises(ValueError):
+            self.repository.add_or_update(
+                JobInput(
+                    publish_date="2026-05-20",
+                    job_title="",
+                    company_name="Example Systems",
+                    description="Build things.",
+                    url="https://example.com/jobs/789",
+                    salary_range="",
+                )
+            )
+
+
+class DatabaseConnectionTest(unittest.TestCase):
+    def test_connect_returns_sqlite_rows_by_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "careerops.sqlite3")
+            self.addCleanup(connection.close)
+
+            connection.execute("CREATE TABLE sample (name TEXT)")
+            connection.execute("INSERT INTO sample (name) VALUES (?)", ("ok",))
+            row = connection.execute("SELECT name FROM sample").fetchone()
+
+        self.assertIsInstance(row, sqlite3.Row)
+        self.assertEqual(row["name"], "ok")
+
+
+if __name__ == "__main__":
+    unittest.main()

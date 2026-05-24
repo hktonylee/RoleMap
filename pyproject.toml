@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "careerops"
+version = "0.1.0"
+description = "Local SQLite career operations system"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+careerops = "careerops.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["careerops*"]
