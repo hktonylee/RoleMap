@@ -45,7 +45,7 @@ class _JobBrowser:
     def _draw_list(self, rows: list[object]) -> None:
         height, width = self.stdscr.getmaxyx()
         self._add_line(0, 0, f"Search: {self.query}", width, curses.A_BOLD)
-        self._add_line(1, 0, "Enter details  Esc/q quit  Up/Down or Ctrl-N/Ctrl-P move", width)
+        self._add_line(1, 0, "Enter/Right details  Esc/q quit  Up/Down or Ctrl-N/Ctrl-P move", width)
 
         if not rows:
             self._add_line(3, 0, "No jobs found.", width)
@@ -92,7 +92,7 @@ class _JobBrowser:
         if key in (curses.KEY_UP, 16):
             self.selected = max(0, self.selected - 1)
             return False
-        if key in (curses.KEY_ENTER, 10, 13) and rows:
+        if key in (curses.KEY_ENTER, curses.KEY_RIGHT, 10, 13) and rows:
             self.mode = "detail"
             self.detail_scroll = 0
             return False
