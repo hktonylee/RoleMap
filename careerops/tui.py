@@ -20,6 +20,7 @@ _SORT_COLUMNS = (
 _SORT_COLUMN_BY_KEY = {key: column for key, column, _label in _SORT_COLUMNS}
 _SORT_LABEL_BY_COLUMN = {column: label for _key, column, label in _SORT_COLUMNS}
 _DETAIL_DESCRIPTION_START_ROW = 10
+_DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 
 
 def run(repository: JobRepository, initial_query: str = "") -> None:
@@ -108,8 +109,9 @@ def _format_cell(value: object, width: int) -> str:
 
 def _detail_description_lines(row: JobRow, width: int) -> list[str]:
     lines = []
+    wrap_width = min(_DETAIL_DESCRIPTION_WRAP_WIDTH, max(20, width - 2))
     for paragraph in _row_text(row, "description").splitlines() or [""]:
-        lines.extend(textwrap.wrap(paragraph, width=max(20, width - 2)) or [""])
+        lines.extend(textwrap.wrap(paragraph, width=wrap_width) or [""])
     return lines
 
 

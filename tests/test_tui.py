@@ -235,6 +235,16 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertNotIn("First description line.", rendered)
         self.assertIn("Third description line.", rendered)
 
+    def test_detail_description_soft_wraps_at_120_characters(self) -> None:
+        row = {
+            "description": " ".join(["platform"] * 40),
+        }
+
+        lines = tui._detail_description_lines(row, 200)
+
+        self.assertGreater(len(lines), 1)
+        self.assertLessEqual(max(len(line) for line in lines), 120)
+
 
 if __name__ == "__main__":
     unittest.main()
