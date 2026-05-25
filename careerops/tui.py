@@ -211,7 +211,10 @@ class _JobBrowser:
         self._add_line(
             1,
             0,
-            f"Sort: {sort_label}  o sort  Enter/Right details  Esc/q quit  Up/Down move",
+            (
+                f"Sort: {sort_label}  o sort  Enter/Right details  Esc/q quit  "
+                "Up/Down/PgUp/PgDn/Home/End move"
+            ),
             width,
         )
 
@@ -269,6 +272,19 @@ class _JobBrowser:
             return False
         if key in (curses.KEY_UP, 16):
             self.selected = max(0, self.selected - 1)
+            return False
+        visible_count = max(1, self.stdscr.getmaxyx()[0] - 4)
+        if key == curses.KEY_NPAGE:
+            self.selected = min(self.selected + visible_count, max(0, len(rows) - 1))
+            return False
+        if key == curses.KEY_PPAGE:
+            self.selected = max(0, self.selected - visible_count)
+            return False
+        if key == curses.KEY_HOME:
+            self.selected = 0
+            return False
+        if key == curses.KEY_END:
+            self.selected = max(0, len(rows) - 1)
             return False
         if key in (curses.KEY_ENTER, curses.KEY_RIGHT, 10, 13) and rows:
             self.mode = "detail"

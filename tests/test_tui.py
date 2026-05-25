@@ -193,6 +193,35 @@ class TuiSortingTest(unittest.TestCase):
 
 
 class JobBrowserKeyHandlingTest(unittest.TestCase):
+    def test_page_down_and_page_up_move_list_selection_by_visible_page(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        rows = [_row(index) for index in range(45)]
+
+        should_quit = browser._handle_list_key(curses.KEY_NPAGE, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.selected, 20)
+
+        should_quit = browser._handle_list_key(curses.KEY_PPAGE, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.selected, 0)
+
+    def test_home_and_end_move_list_selection_to_first_and_last_job(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        rows = [_row(index) for index in range(45)]
+        browser.selected = 12
+
+        should_quit = browser._handle_list_key(curses.KEY_END, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.selected, 44)
+
+        should_quit = browser._handle_list_key(curses.KEY_HOME, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.selected, 0)
+
     def test_right_arrow_opens_selected_job_details(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.detail_scroll = 3
