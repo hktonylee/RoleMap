@@ -41,6 +41,18 @@ class ToggleRepository:
         return True
 
 
+def _row(index: int) -> dict[str, object]:
+    return {
+        "id": index,
+        "publish_date": "2026-05-24",
+        "company_name": f"Company {index}",
+        "job_title": f"Job {index}",
+        "salary_range": "",
+        "url": "",
+        "last_update": "",
+    }
+
+
 class TuiListFormattingTest(unittest.TestCase):
     def test_list_row_uses_requested_column_order_without_job_id(self) -> None:
         row = {
@@ -251,6 +263,24 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertFalse(should_quit)
         self.assertEqual(browser.detail_scroll, 0)
+
+
+class JobBrowserListViewTest(unittest.TestCase):
+    def test_list_draws_next_page_when_selection_moves_beyond_visible_rows(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.selected = 20
+
+        browser._draw_list([_row(index) for index in range(25)])
+
+        rendered = "\n".join(screen.lines.values())
+        self.assertTrue(
+            any(
+                line.startswith("> 2026-05-24") and "Company 20" in line
+                for line in screen.lines.values()
+            )
+        )
+        self.assertNotIn("Company 0", rendered)
 
 
 class JobBrowserDetailViewTest(unittest.TestCase):

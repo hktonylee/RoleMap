@@ -222,10 +222,15 @@ class _JobBrowser:
         widths = _list_column_widths(width)
         self._add_line(3, 0, _format_list_header(widths), width, curses.A_BOLD)
 
-        for index, row in enumerate(rows[: max(0, height - 4)]):
+        visible_count = max(0, height - 4)
+        page_start = (
+            (self.selected // visible_count) * visible_count if visible_count else 0
+        )
+        visible_rows = rows[page_start : page_start + visible_count]
+        for index, row in enumerate(visible_rows, start=page_start):
             line = _format_list_row(row, widths, selected=index == self.selected)
             attrs = _list_row_attrs(row, selected=index == self.selected)
-            self._add_line(index + 4, 0, line, width, attrs)
+            self._add_line(index - page_start + 4, 0, line, width, attrs)
 
     def _draw_sort_selector(self) -> None:
         _height, width = self.stdscr.getmaxyx()
