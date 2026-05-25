@@ -455,7 +455,7 @@ class _JobBrowser:
             return
         launch = subprocess.Popen if opener is None else opener
         try:
-            launch(shlex.split(browser) + [url])
+            launch(shlex.split(browser) + [url], stdout=subprocess.DEVNULL)
         except OSError as exc:
             self.status_message = f"Open URL failed: {exc}"
         else:

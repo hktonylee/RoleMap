@@ -1,6 +1,7 @@
 import unittest
 import curses
 import os
+import subprocess
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -477,7 +478,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "url": "https://example.com/jobs/staff",
                     "description": "Build systems.",
                 },
-                opener=lambda command: launched_commands.append(command),
+                opener=lambda command, **_kwargs: launched_commands.append(command),
             )
 
         self.assertFalse(should_quit)
@@ -485,6 +486,27 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             launched_commands,
             [["firefox", "--new-tab", "https://example.com/jobs/staff"]],
         )
+
+    def test_opening_job_url_mutes_browser_stdout(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+        launched_kwargs = []
+
+        with patch.dict(os.environ, {"BROWSER": "firefox --new-tab"}):
+            should_quit = browser._handle_detail_key(
+                curses.KEY_ENTER,
+                {
+                    "id": 42,
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "url": "https://example.com/jobs/staff",
+                    "description": "Build systems.",
+                },
+                opener=lambda _command, **kwargs: launched_kwargs.append(kwargs),
+            )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(launched_kwargs, [{"stdout": subprocess.DEVNULL}])
 
     def test_u_key_does_not_open_job_url_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
@@ -501,7 +523,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "url": "https://example.com/jobs/staff",
                     "description": "Build systems.",
                 },
-                opener=lambda command: launched_commands.append(command),
+                opener=lambda command, **_kwargs: launched_commands.append(command),
             )
 
         self.assertFalse(should_quit)
