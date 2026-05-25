@@ -68,14 +68,25 @@ def _sort_list_rows(
     column: str | None,
     reverse: bool = False,
 ) -> list[JobRow]:
+    active = [row for row in rows if not _row_is_expired(row)]
+    expired = [row for row in rows if _row_is_expired(row)]
     if column is None:
-        return list(rows)
+        return active + expired
+    return _sort_list_group(active, column, reverse) + _sort_list_group(
+        expired,
+        column,
+        reverse,
+    )
+
+
+def _sort_list_group(
+    rows: Sequence[JobRow],
+    column: str,
+    reverse: bool,
+) -> list[JobRow]:
     populated = [row for row in rows if _row_text(row, column)]
     empty = [row for row in rows if not _row_text(row, column)]
-    return (
-        sorted(populated, key=lambda row: _sort_value(row, column), reverse=reverse)
-        + empty
-    )
+    return sorted(populated, key=lambda row: _sort_value(row, column), reverse=reverse) + empty
 
 
 def _sort_value(row: JobRow, column: str) -> tuple[bool, str]:

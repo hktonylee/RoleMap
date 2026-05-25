@@ -161,7 +161,7 @@ In the terminal UI:
 
 - Type to filter jobs by publish date, company, title, description, URL, or salary range.
 - Press `o` to choose a sort column. Use lowercase for ascending order or uppercase for descending order.
-- Press Space to toggle the selected job's expired state. Expired rows are dimmed and struck through.
+- Press Space to toggle the selected job's expired state. Expired rows are dimmed, struck through, and sorted after active rows.
 - Press Enter or Right to open details.
 - Press Up, Down, Page Up, Page Down, Home, or End to scroll.
 - Press `G` from a job detail view to choose a resume template and prepare a tailored resume generation run.

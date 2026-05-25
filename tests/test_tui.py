@@ -218,6 +218,29 @@ class TuiSortingTest(unittest.TestCase):
             ["Zulu Labs", "Alpha Systems"],
         )
 
+    def test_sort_list_rows_keeps_expired_rows_after_active_rows(self) -> None:
+        rows = [
+            {"id": 1, "company_name": "Zulu Labs", "is_expired": 0},
+            {"id": 2, "company_name": "Alpha Systems", "is_expired": 1},
+            {"id": 3, "company_name": "Beta Systems", "is_expired": 0},
+        ]
+
+        sorted_rows = tui._sort_list_rows(rows, "company_name")
+
+        self.assertEqual([row["id"] for row in sorted_rows], [3, 1, 2])
+
+    def test_reverse_sort_list_rows_keeps_expired_rows_after_active_rows(self) -> None:
+        rows = [
+            {"id": 1, "company_name": "Alpha Systems", "is_expired": 1},
+            {"id": 2, "company_name": "Beta Systems", "is_expired": 0},
+            {"id": 3, "company_name": "Zulu Labs", "is_expired": 1},
+            {"id": 4, "company_name": "Acme Labs", "is_expired": 0},
+        ]
+
+        sorted_rows = tui._sort_list_rows(rows, "company_name", reverse=True)
+
+        self.assertEqual([row["id"] for row in sorted_rows], [2, 4, 3, 1])
+
     def test_o_key_opens_sort_column_selection(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
 

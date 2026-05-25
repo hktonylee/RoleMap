@@ -149,6 +149,49 @@ class JobRepositoryTest(unittest.TestCase):
             [newest_second_id, newest_first_id, oldest_id],
         )
 
+    def test_list_orders_expired_jobs_after_active_jobs(self) -> None:
+        active_old_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Active Old Engineer",
+                company_name="Example Systems",
+                description="Build active old systems.",
+            )
+        )
+        expired_new_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Expired New Engineer",
+                company_name="Example Systems",
+                description="Build expired new systems.",
+                is_expired=True,
+            )
+        )
+        active_new_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-22",
+                job_title="Active New Engineer",
+                company_name="Example Systems",
+                description="Build active new systems.",
+            )
+        )
+        expired_old_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-21",
+                job_title="Expired Old Engineer",
+                company_name="Example Systems",
+                description="Build expired old systems.",
+                is_expired=True,
+            )
+        )
+
+        rows = self.repository.list()
+
+        self.assertEqual(
+            [row["id"] for row in rows],
+            [active_new_id, active_old_id, expired_new_id, expired_old_id],
+        )
+
     def test_search_orders_by_publish_date_desc_then_job_id_desc(self) -> None:
         oldest_id = self.repository.add_or_update(
             JobInput(
@@ -185,6 +228,49 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(
             [row["id"] for row in rows],
             [newest_second_id, newest_first_id, oldest_id],
+        )
+
+    def test_search_orders_expired_jobs_after_active_jobs(self) -> None:
+        active_old_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Active Old Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+            )
+        )
+        expired_new_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Expired New Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+                is_expired=True,
+            )
+        )
+        active_new_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-22",
+                job_title="Active New Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+            )
+        )
+        expired_old_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-21",
+                job_title="Expired Old Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+                is_expired=True,
+            )
+        )
+
+        rows = self.repository.search("shared systems")
+
+        self.assertEqual(
+            [row["id"] for row in rows],
+            [active_new_id, active_old_id, expired_new_id, expired_old_id],
         )
 
     def test_search_matches_core_job_fields(self) -> None:

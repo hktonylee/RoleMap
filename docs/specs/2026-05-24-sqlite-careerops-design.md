@@ -38,7 +38,7 @@ The `jobs` table uses a stable integer primary key and stores source data as tex
 - `last_update`
 - `created_at`
 
-`url` is unique when present so repeated imports from the same job posting update the existing row. `is_expired` is a local tracking flag for postings that should remain in history but no longer be treated as active. `last_update` is always set by the local system in ISO-8601 local time when the record is inserted or updated.
+`url` is unique when present so repeated imports from the same job posting update the existing row. `is_expired` is a local tracking flag for postings that should remain in history but no longer be treated as active. List and search views order by `is_expired` first so active jobs stay above expired jobs. `last_update` is always set by the local system in ISO-8601 local time when the record is inserted or updated.
 
 ## CLI And TUI
 
@@ -53,7 +53,7 @@ CLI commands:
 - `careerops show-job ID`
 - `careerops tui`
 
-The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed and struck through. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
+The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed, struck through, and sorted after active rows. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
 
 ## Error Handling
 

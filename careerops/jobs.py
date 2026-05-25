@@ -12,6 +12,7 @@ class JobRow(Protocol):
 
 
 JobRows: TypeAlias = list[sqlite3.Row]
+_JOB_LIST_ORDER = "is_expired ASC, publish_date DESC, id DESC"
 
 
 @dataclass(frozen=True)
@@ -170,9 +171,9 @@ class JobRepository:
     def list(self) -> JobRows:
         return list(
             self.connection.execute(
-                """
+                f"""
                 SELECT * FROM jobs
-                ORDER BY publish_date DESC, id DESC
+                ORDER BY {_JOB_LIST_ORDER}
                 """
             ).fetchall()
         )
@@ -185,7 +186,7 @@ class JobRepository:
         pattern = f"%{needle}%"
         return list(
             self.connection.execute(
-                """
+                f"""
                 SELECT * FROM jobs
                 WHERE publish_date LIKE ? COLLATE NOCASE
                    OR job_title LIKE ? COLLATE NOCASE
@@ -193,7 +194,7 @@ class JobRepository:
                    OR description LIKE ? COLLATE NOCASE
                    OR url LIKE ? COLLATE NOCASE
                    OR salary_range LIKE ? COLLATE NOCASE
-                ORDER BY publish_date DESC, id DESC
+                ORDER BY {_JOB_LIST_ORDER}
                 """,
                 (pattern, pattern, pattern, pattern, pattern, pattern),
             ).fetchall()
