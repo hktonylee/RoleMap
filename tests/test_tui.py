@@ -456,6 +456,8 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
         self.assertIn("No resume templates found", browser.status_message)
+        self.assertIn("Put your detailed resume in templates/", browser.status_message)
+        self.assertIn("resume_templates/", browser.status_message)
 
     def test_template_selection_runs_resume_generation(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())

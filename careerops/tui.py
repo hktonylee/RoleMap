@@ -397,7 +397,10 @@ class _JobBrowser:
         if key in (ord("G"), ord("g")) and row is not None:
             available_templates = list(discover_templates() if templates is None else templates)
             if not available_templates:
-                self.status_message = "No resume templates found in templates/ or resume_templates/."
+                self.status_message = (
+                    "No resume templates found. Put your detailed resume in templates/ "
+                    "or resume_templates/."
+                )
                 return False
             self.template_templates = available_templates
             self.template_selected = 0
