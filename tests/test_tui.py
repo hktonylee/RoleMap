@@ -53,6 +53,10 @@ def _row(index: int) -> dict[str, object]:
     }
 
 
+class FakeRepository:
+    pass
+
+
 class TuiListFormattingTest(unittest.TestCase):
     def test_list_row_uses_requested_column_order_without_job_id(self) -> None:
         row = {
@@ -331,6 +335,69 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
+        self.assertIn("G generate resume", screen.lines[1])
+
+    def test_g_key_opens_template_selection_from_detail_view(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(
+            ord("G"),
+            {
+                "id": 42,
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "description": "Build systems.",
+            },
+            templates=[object()],
+        )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "template")
+        self.assertEqual(browser.template_selected, 0)
+
+    def test_g_key_stays_on_detail_view_when_no_templates_exist(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(
+            ord("G"),
+            {
+                "id": 42,
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "description": "Build systems.",
+            },
+            templates=[],
+        )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "detail")
+        self.assertIn("No resume templates found", browser.status_message)
+
+    def test_template_selection_runs_resume_generation(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        template = object()
+        row = {
+            "id": 42,
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "description": "Build systems.",
+        }
+        browser.mode = "template"
+        browser.template_templates = [template]
+        browser.template_job = row
+        generated: list[tuple[object, object]] = []
+
+        should_quit = browser._handle_template_key(
+            curses.KEY_ENTER,
+            generate=lambda job, selected_template: generated.append((job, selected_template)),
+        )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(generated, [(row, template)])
+        self.assertEqual(browser.mode, "detail")
+        self.assertIn("Resume generation prepared", browser.status_message)
 
     def test_detail_basic_info_stays_visible_while_description_scrolls(self) -> None:
         screen = RecordingScreen()

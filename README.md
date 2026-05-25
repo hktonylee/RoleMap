@@ -12,6 +12,7 @@ The repository currently focuses on one durable domain object: `jobs`. Each job 
 - Search and inspect saved jobs from scripts or a curses-based terminal UI.
 - Backfill generated or email-summary descriptions with text fetched from the original job posting URL.
 - Clean known source-site navigation text, sign-in prompts, and footer chrome from stored descriptions.
+- Prepare tailored resume generation runs from detailed resume templates and saved job descriptions.
 - Provide a project-local Codex skill at `codex-skills/add-job-description/SKILL.md` for adding job descriptions consistently.
 
 ## Setup
@@ -163,7 +164,39 @@ In the terminal UI:
 - Press Space to toggle the selected job's expired state. Expired rows are dimmed and struck through.
 - Press Enter or Right to open details.
 - Press Up, Down, Page Up, Page Down, Home, or End to scroll.
+- Press `G` from a job detail view to choose a resume template and prepare a tailored resume generation run.
 - Press Esc, `q`, or Left to go back or quit.
+
+## Resume Generation
+
+Put detailed master resume files in either:
+
+```text
+templates/
+resume_templates/
+```
+
+From the TUI job detail view, press `G`, choose a template, and press Enter. CareerOps creates a job-specific directory under:
+
+```text
+generated/resumes/
+```
+
+Each run contains:
+
+- a copy of the selected resume template
+- `job-description.txt`
+- `tailoring-prompt.md`
+
+By default, CareerOps prepares those files without calling an external AI tool. To run your own background generator, set `CAREEROPS_RESUME_GENERATOR` to a command. CareerOps runs the command from the generated output directory and provides these environment variables:
+
+```text
+CAREEROPS_RESUME_TEMPLATE
+CAREEROPS_RESUME_TEMPLATE_COPY
+CAREEROPS_RESUME_PROMPT
+CAREEROPS_RESUME_JOB_DESCRIPTION
+CAREEROPS_RESUME_OUTPUT_DIR
+```
 
 ## Maintaining Source-Backed Descriptions
 

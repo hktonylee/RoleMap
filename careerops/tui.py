@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import curses
+import subprocess
 import textwrap
 from collections.abc import Sequence
 
 from careerops.jobs import JobRepository, JobRow
+from careerops.resumes import ResumeTemplate, discover_templates, generate_resume
 
 
 _COLUMN_GAP = "  "
@@ -175,6 +177,10 @@ class _JobBrowser:
         self.mode = "list"
         self.sort_column: str | None = None
         self.detail_scroll = 0
+        self.status_message = ""
+        self.template_templates: list[ResumeTemplate] = []
+        self.template_selected = 0
+        self.template_job: JobRow | None = None
 
     def run(self) -> None:
         curses.curs_set(0)
@@ -193,10 +199,14 @@ class _JobBrowser:
             row = rows[self.selected] if self.mode == "detail" and rows else None
             if self.mode == "detail" and self._handle_detail_key(key, row):
                 return
+            if self.mode == "template" and self._handle_template_key(key):
+                return
 
     def _draw(self, rows: Sequence[JobRow]) -> None:
         self.stdscr.erase()
-        if self.mode == "detail" and rows:
+        if self.mode == "template":
+            self._draw_template_selector()
+        elif self.mode == "detail" and rows:
             self._draw_detail(rows[self.selected])
         elif self.mode == "sort":
             self._draw_sort_selector()
@@ -247,13 +257,20 @@ class _JobBrowser:
         height, width = self.stdscr.getmaxyx()
         title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
         self._add_line(0, 0, title, width, curses.A_BOLD)
-        self._add_line(1, 0, "Esc/q/Left back  Up/Down/PgUp/PgDn/Home/End scroll", width)
+        self._add_line(
+            1,
+            0,
+            "Esc/q/Left back  Up/Down/PgUp/PgDn/Home/End scroll  G generate resume",
+            width,
+        )
 
         self._add_line(3, 0, f"ID: {_row_text(row, 'id')}", width)
         self._add_line(4, 0, f"Publish date: {_row_text(row, 'publish_date')}", width)
         self._add_line(5, 0, f"URL: {_row_text(row, 'url')}", width)
         self._add_line(6, 0, f"Salary range: {_row_text(row, 'salary_range')}", width)
         self._add_line(7, 0, f"Last update: {_row_text(row, 'last_update')}", width)
+        if self.status_message:
+            self._add_line(8, 0, self.status_message, width)
         self._add_line(9, 0, "Description:", width)
 
         lines = _detail_description_lines(row, width)
@@ -263,6 +280,17 @@ class _JobBrowser:
         ]
         for index, line in enumerate(visible, start=_DETAIL_DESCRIPTION_START_ROW):
             self._add_line(index, 0, line, width)
+
+    def _draw_template_selector(self) -> None:
+        height, width = self.stdscr.getmaxyx()
+        self._add_line(0, 0, "Choose resume template", width, curses.A_BOLD)
+        self._add_line(1, 0, "Enter generate  Esc/q/Left cancel  Up/Down move", width)
+        if self.status_message:
+            self._add_line(2, 0, self.status_message, width)
+        for index, template in enumerate(self.template_templates[: max(0, height - 4)]):
+            marker = ">" if index == self.template_selected else " "
+            attrs = curses.A_REVERSE if index == self.template_selected else curses.A_NORMAL
+            self._add_line(index + 4, 0, f"{marker} {template.display_name}", width, attrs)
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
         if key in (ord("q"), 27):
@@ -317,9 +345,25 @@ class _JobBrowser:
         self.mode = "list"
         return False
 
-    def _handle_detail_key(self, key: int, row: JobRow | None = None) -> bool:
+    def _handle_detail_key(
+        self,
+        key: int,
+        row: JobRow | None = None,
+        templates: Sequence[ResumeTemplate] | None = None,
+    ) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
+            return False
+        if key in (ord("G"), ord("g")) and row is not None:
+            available_templates = list(discover_templates() if templates is None else templates)
+            if not available_templates:
+                self.status_message = "No resume templates found in templates/ or resume_templates/."
+                return False
+            self.template_templates = available_templates
+            self.template_selected = 0
+            self.template_job = row
+            self.status_message = ""
+            self.mode = "template"
             return False
         height, width = self.stdscr.getmaxyx()
         visible_height = max(0, height - _DETAIL_DESCRIPTION_START_ROW)
@@ -345,6 +389,40 @@ class _JobBrowser:
         if key == curses.KEY_UP:
             self.detail_scroll = max(0, self.detail_scroll - 1)
             return False
+        return False
+
+    def _handle_template_key(self, key: int, generate=generate_resume) -> bool:
+        if key in (ord("q"), 27, curses.KEY_LEFT):
+            self.mode = "detail"
+            return False
+        if key == curses.KEY_DOWN:
+            self.template_selected = min(
+                self.template_selected + 1,
+                max(0, len(self.template_templates) - 1),
+            )
+            return False
+        if key == curses.KEY_UP:
+            self.template_selected = max(0, self.template_selected - 1)
+            return False
+        if key not in (curses.KEY_ENTER, 10, 13):
+            return False
+        if self.template_job is None or not self.template_templates:
+            self.status_message = "No resume template selected."
+            self.mode = "detail"
+            return False
+
+        try:
+            result = generate(
+                self.template_job,
+                self.template_templates[self.template_selected],
+            )
+        except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+            self.status_message = f"Resume generation failed: {exc}"
+        else:
+            output_dir = getattr(result, "output_dir", None)
+            suffix = f": {output_dir}" if output_dir is not None else "."
+            self.status_message = f"Resume generation prepared{suffix}"
+        self.mode = "detail"
         return False
 
     def _add_line(
