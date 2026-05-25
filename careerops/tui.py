@@ -142,7 +142,10 @@ def _row_is_expired(row: JobRow) -> bool:
 
 
 def _strikethrough(value: str) -> str:
-    return "".join(character + _STRIKETHROUGH_MARK for character in value)
+    return "".join(
+        character if character.isspace() else character + _STRIKETHROUGH_MARK
+        for character in value
+    )
 
 
 def _clip_for_terminal(text: str, width: int) -> str:

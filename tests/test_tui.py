@@ -121,6 +121,7 @@ class TuiListFormattingTest(unittest.TestCase):
         attrs = _list_row_attrs(row, selected=True)
 
         self.assertIn("\u0336", line)
+        self.assertNotIn(" \u0336", line)
         self.assertTrue(attrs & curses.A_DIM)
         self.assertTrue(attrs & curses.A_REVERSE)
 
@@ -145,7 +146,12 @@ class TuiListFormattingTest(unittest.TestCase):
             20,
         )
 
-        self.assertEqual(screen.lines[0].count("\u0336"), 19)
+        visible_text = screen.lines[0].replace("\u0336", "")
+        self.assertEqual(
+            screen.lines[0].count("\u0336"),
+            sum(1 for character in visible_text if character != " "),
+        )
+        self.assertEqual(len(visible_text), 19)
 
     def test_other_column_omits_last_update_time(self) -> None:
         row = {
