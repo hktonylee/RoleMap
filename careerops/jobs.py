@@ -172,7 +172,7 @@ class JobRepository:
             self.connection.execute(
                 """
                 SELECT * FROM jobs
-                ORDER BY last_update DESC, id DESC
+                ORDER BY publish_date DESC, id DESC
                 """
             ).fetchall()
         )
@@ -193,7 +193,7 @@ class JobRepository:
                    OR description LIKE ? COLLATE NOCASE
                    OR url LIKE ? COLLATE NOCASE
                    OR salary_range LIKE ? COLLATE NOCASE
-                ORDER BY last_update DESC, id DESC
+                ORDER BY publish_date DESC, id DESC
                 """,
                 (pattern, pattern, pattern, pattern, pattern, pattern),
             ).fetchall()

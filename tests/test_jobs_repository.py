@@ -111,6 +111,82 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(rows[0]["job_title"], "Backend Engineer, Platform")
         self.assertIn("platform ownership", rows[0]["description"])
 
+    def test_list_orders_by_publish_date_desc_then_job_id_desc(self) -> None:
+        oldest_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Old Engineer",
+                company_name="Old Systems",
+                description="Build old systems.",
+            )
+        )
+        newest_first_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="First New Engineer",
+                company_name="New Systems",
+                description="Build new systems.",
+            )
+        )
+        newest_second_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Second New Engineer",
+                company_name="New Systems",
+                description="Build newer systems.",
+            )
+        )
+        self.connection.execute(
+            "UPDATE jobs SET last_update = ? WHERE id = ?",
+            ("2026-05-30T12:00:00-07:00", oldest_id),
+        )
+        self.connection.commit()
+
+        rows = self.repository.list()
+
+        self.assertEqual(
+            [row["id"] for row in rows],
+            [newest_second_id, newest_first_id, oldest_id],
+        )
+
+    def test_search_orders_by_publish_date_desc_then_job_id_desc(self) -> None:
+        oldest_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Old Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+            )
+        )
+        newest_first_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="First New Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+            )
+        )
+        newest_second_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Second New Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+            )
+        )
+        self.connection.execute(
+            "UPDATE jobs SET last_update = ? WHERE id = ?",
+            ("2026-05-30T12:00:00-07:00", oldest_id),
+        )
+        self.connection.commit()
+
+        rows = self.repository.search("Example Systems")
+
+        self.assertEqual(
+            [row["id"] for row in rows],
+            [newest_second_id, newest_first_id, oldest_id],
+        )
+
     def test_search_matches_core_job_fields(self) -> None:
         self.repository.add_or_update(
             JobInput(
