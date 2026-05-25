@@ -7,10 +7,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from careerops.cli import (
+    _handle_add_job,
     _handle_backfill_descriptions,
+    _handle_backfill_salaries,
     _handle_clean_descriptions,
     _handle_list_jobs,
 )
+from careerops.job_sources import SourceJob
 from careerops.db import connect, initialize_database
 from careerops.jobs import JobInput, JobRepository
 
@@ -117,8 +120,11 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
 
         with (
             patch(
-                "careerops.cli.fetch_source_description",
-                return_value="Full source job description from the company website.",
+                "careerops.cli.fetch_source_job",
+                return_value=SourceJob(
+                    description="Full source job description from the company website.",
+                    salary_range="",
+                ),
             ) as fetch,
             patch.object(sys, "stdout", stdout),
             patch.object(sys, "stderr", stderr),
@@ -181,6 +187,122 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
         self.assertEqual(
             self.repository.get(job_id)["description"],
             "Overview\n\nBuild reliable services.",
+        )
+
+
+class AddJobSalaryExtractionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.connection = connect(Path(self.temp_dir.name) / "careerops.sqlite3")
+        self.addCleanup(self.connection.close)
+        initialize_database(self.connection)
+        self.repository = JobRepository(self.connection)
+
+    def test_add_job_extracts_missing_indeed_salary_from_description(self) -> None:
+        args = argparse.Namespace(
+            json=None,
+            publish_date="2026-05-25",
+            job_title="Full Stack Developer",
+            company_name="Example Systems",
+            description=(
+                "Build AI-enabled internal products.\n\n"
+                "Job Types: Full-time, Permanent\n\n"
+                "Pay: $70,000.00-$80,000.00 per year"
+            ),
+            description_file="",
+            url="https://ca.indeed.com/viewjob?jk=a85f6585460cb5c0",
+            salary_range="",
+        )
+        stdout = io.StringIO()
+
+        with patch.object(sys, "stdout", stdout):
+            exit_code = _handle_add_job(args, self.repository)
+
+        self.assertEqual(exit_code, 0)
+        job_id = int(stdout.getvalue().strip())
+        self.assertEqual(
+            self.repository.get(job_id)["salary_range"],
+            "$70,000-$80,000 per year",
+        )
+
+
+class BackfillSalariesCliTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.connection = connect(Path(self.temp_dir.name) / "careerops.sqlite3")
+        self.addCleanup(self.connection.close)
+        initialize_database(self.connection)
+        self.repository = JobRepository(self.connection)
+
+    def test_backfill_salaries_updates_empty_salary_from_existing_description(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Senior Full Stack Engineer",
+                company_name="Total Life",
+                description=(
+                    "Build healthcare integrations.\n\n"
+                    "What We Offer\n\n"
+                    "Salary: $120,000 – $150,000 CAD, commensurate with experience"
+                ),
+                url="https://ca.indeed.com/viewjob?jk=1582d610d03dbd6f",
+                salary_range="",
+            )
+        )
+        args = argparse.Namespace(dry_run=False, limit=0, overwrite=False, fetch=False)
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with (
+            patch.object(sys, "stdout", stdout),
+            patch.object(sys, "stderr", stderr),
+        ):
+            exit_code = _handle_backfill_salaries(args, self.repository)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stdout.getvalue().strip(), str(job_id))
+        self.assertEqual(stderr.getvalue().strip(), "Backfilled 1 salary ranges")
+        self.assertEqual(
+            self.repository.get(job_id)["salary_range"],
+            "$120,000-$150,000 CAD",
+        )
+
+    def test_backfill_salaries_can_fetch_source_when_description_has_no_salary(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Software Engineer",
+                company_name="Example Systems",
+                description="Source: Indeed job alert email.",
+                url="https://ca.indeed.com/viewjob?jk=61b27402bd23ef5f",
+                salary_range="",
+            )
+        )
+        args = argparse.Namespace(dry_run=False, limit=0, overwrite=False, fetch=True)
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with (
+            patch(
+                "careerops.cli.fetch_source_job",
+                return_value=SourceJob(
+                    description="Full source job description.",
+                    salary_range="$125,000-$160,000 CAD",
+                ),
+            ) as fetch,
+            patch.object(sys, "stdout", stdout),
+            patch.object(sys, "stderr", stderr),
+        ):
+            exit_code = _handle_backfill_salaries(args, self.repository)
+
+        self.assertEqual(exit_code, 0)
+        fetch.assert_called_once_with("https://ca.indeed.com/viewjob?jk=61b27402bd23ef5f")
+        self.assertEqual(stdout.getvalue().strip(), str(job_id))
+        self.assertEqual(
+            self.repository.get(job_id)["salary_range"],
+            "$125,000-$160,000 CAD",
         )
 
 

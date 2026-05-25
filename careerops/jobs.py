@@ -125,6 +125,24 @@ class JobRepository:
             raise ValueError(f"Job not found: {job_id}")
         self.connection.commit()
 
+    def update_salary_range(self, job_id: int, salary_range: str) -> None:
+        normalized = salary_range.strip()
+        if not normalized:
+            raise ValueError("salary_range must not be empty")
+
+        cursor = self.connection.execute(
+            """
+            UPDATE jobs
+            SET salary_range = ?,
+                last_update = ?
+            WHERE id = ?
+            """,
+            (normalized, _local_timestamp(), job_id),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Job not found: {job_id}")
+        self.connection.commit()
+
     def list(self) -> JobRows:
         return list(
             self.connection.execute(

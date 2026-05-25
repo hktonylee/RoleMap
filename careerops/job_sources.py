@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from html.parser import HTMLParser
 import json
 import re
@@ -13,19 +14,56 @@ USER_AGENT = (
 )
 
 
+@dataclass(frozen=True)
+class SourceJob:
+    description: str = ""
+    salary_range: str = ""
+
+
 def fetch_source_description(url: str) -> str:
+    return fetch_source_job(url).description
+
+
+def fetch_source_job(url: str) -> SourceJob:
     request = Request(url, headers={"User-Agent": USER_AGENT})
     with urlopen(request, timeout=20) as response:
         charset = response.headers.get_content_charset() or "utf-8"
         html = response.read().decode(charset, errors="replace")
-    return extract_source_description(html)
+    return extract_source_job(html)
 
 
 def extract_source_description(html: str) -> str:
-    json_ld_description = _extract_json_ld_job_description(html)
-    if json_ld_description:
-        return clean_source_description(json_ld_description)
-    return clean_source_description(_VisibleTextParser.parse(html))
+    return extract_source_job(html).description
+
+
+def extract_source_job(html: str) -> SourceJob:
+    json_ld_job = _extract_json_ld_job(html)
+    visible_text = clean_source_description(_VisibleTextParser.parse(html))
+    description = json_ld_job.description or visible_text
+    salary_range = json_ld_job.salary_range or extract_salary_range(visible_text)
+    return SourceJob(
+        description=clean_source_description(description),
+        salary_range=salary_range,
+    )
+
+
+def extract_salary_range(value: str) -> str:
+    text = _normalize_text(value)
+    if not text:
+        return ""
+
+    paragraphs = _paragraphs(text)
+    for index, paragraph in enumerate(paragraphs):
+        window = paragraph
+        if _looks_like_salary_context(paragraph) and index + 1 < len(paragraphs):
+            window = f"{paragraph} {paragraphs[index + 1]}"
+        salary_range = _extract_salary_from_text(window)
+        if salary_range and (
+            _looks_like_salary_context(window) or _starts_with_money(paragraph)
+        ):
+            return salary_range
+
+    return _extract_salary_from_text(text)
 
 
 def clean_source_description(value: str) -> str:
@@ -35,37 +73,205 @@ def clean_source_description(value: str) -> str:
     return _normalize_text(text)
 
 
-def _extract_json_ld_job_description(html: str) -> str:
+def _extract_json_ld_job(html: str) -> SourceJob:
     for payload in _ScriptParser.parse_json_ld(html):
         try:
             data = json.loads(payload)
         except json.JSONDecodeError:
             continue
-        description = _find_jobposting_description(data)
-        if description:
-            return _html_to_text(description)
-    return ""
+        job_posting = _find_jobposting(data)
+        if job_posting:
+            return SourceJob(
+                description=_html_to_text(_string_value(job_posting.get("description"))),
+                salary_range=_extract_jobposting_salary(job_posting),
+            )
+    return SourceJob()
 
 
-def _find_jobposting_description(data: object) -> str:
+def _find_jobposting(data: object) -> dict[str, object] | None:
     if isinstance(data, list):
         for item in data:
-            description = _find_jobposting_description(item)
-            if description:
-                return description
-        return ""
+            job_posting = _find_jobposting(item)
+            if job_posting:
+                return job_posting
+        return None
     if not isinstance(data, dict):
-        return ""
+        return None
 
     item_type = data.get("@type")
     types = item_type if isinstance(item_type, list) else [item_type]
     if "JobPosting" in types:
-        return _string_value(data.get("description"))
+        return data
 
     graph = data.get("@graph")
     if graph:
-        return _find_jobposting_description(graph)
+        return _find_jobposting(graph)
+    return None
+
+
+def _extract_jobposting_salary(job_posting: dict[str, object]) -> str:
+    base_salary = job_posting.get("baseSalary")
+    currency = _string_value(job_posting.get("salaryCurrency"))
+    return _format_base_salary(base_salary, currency)
+
+
+def _format_base_salary(value: object, fallback_currency: str) -> str:
+    if isinstance(value, list):
+        for item in value:
+            salary_range = _format_base_salary(item, fallback_currency)
+            if salary_range:
+                return salary_range
+        return ""
+    if not isinstance(value, dict):
+        return _format_single_salary_value(value, fallback_currency, "")
+
+    currency = _string_value(value.get("currency")) or fallback_currency
+    amount = value.get("value")
+    if isinstance(amount, dict):
+        unit_text = _string_value(amount.get("unitText"))
+        min_value = amount.get("minValue")
+        max_value = amount.get("maxValue")
+        exact_value = amount.get("value")
+        if min_value is not None and max_value is not None:
+            return _format_salary_range(
+                _format_money_amount(min_value, currency),
+                _format_money_amount(max_value, currency),
+                "",
+                _salary_unit_suffix(unit_text, prefer_a=True),
+            )
+        if exact_value is not None:
+            return _format_single_salary_value(exact_value, currency, unit_text)
+    return _format_single_salary_value(amount, currency, "")
+
+
+def _format_single_salary_value(value: object, currency: str, unit_text: str) -> str:
+    amount = _format_money_amount(value, currency)
+    if not amount:
+        return ""
+    suffix = _salary_unit_suffix(unit_text, prefer_a=True)
+    return f"{amount} {suffix}".strip()
+
+
+def _format_money_amount(value: object, currency: str) -> str:
+    if value is None:
+        return ""
+    try:
+        numeric = float(str(value).replace(",", ""))
+    except ValueError:
+        return _normalize_money(str(value))
+
+    if numeric.is_integer():
+        formatted = f"{int(numeric):,}"
+    else:
+        formatted = f"{numeric:,.2f}".rstrip("0").rstrip(".")
+    return f"{_currency_prefix(currency)}{formatted}"
+
+
+def _currency_prefix(currency: str) -> str:
+    normalized = currency.upper()
+    if normalized == "CAD":
+        return "CA$"
+    if normalized == "USD":
+        return "$"
+    return "$"
+
+
+def _salary_unit_suffix(unit_text: str, *, prefer_a: bool = False) -> str:
+    normalized = unit_text.strip().lower()
+    if normalized in {"year", "yr", "annually"}:
+        return "a year" if prefer_a else "per year"
+    if normalized in {"hour", "hr"}:
+        return "an hour" if prefer_a else "per hour"
     return ""
+
+
+def _extract_salary_from_text(value: str) -> str:
+    text = _normalize_salary_text(value)
+    money = r"(?:CA\s*)?\$\s*\d[\d,]*(?:\.\d{2})?(?:\s*[Kk])?"
+    range_pattern = re.compile(
+        rf"({money})\s*(?:-|to)\s*({money})(?:\s*(CAD|USD))?"
+        rf"(?:\s*(per|a)\s+(year|yr|hour|hr)|\s*/\s*(year|yr|hour|hr)|\s*(annually))?",
+        re.IGNORECASE,
+    )
+    single_pattern = re.compile(
+        rf"(?:Pay|Salary|Compensation|Rate|From|Up to|Base pay range|Base salary range)"
+        rf"\s*:?\s*-?\s*({money})(?:\s*(CAD|USD))?"
+        rf"(?:\s*(per|a)\s+(year|yr|hour|hr)|\s*/\s*(year|yr|hour|hr)|\s*(annually))?",
+        re.IGNORECASE,
+    )
+
+    match = range_pattern.search(text)
+    if match:
+        amount_a, amount_b, currency, unit_prefix, unit_a, unit_b, annually = match.groups()
+        unit = unit_a or unit_b or annually or ""
+        suffix = _visible_salary_suffix(unit, unit_prefix)
+        return _format_salary_range(
+            _normalize_money(amount_a),
+            _normalize_money(amount_b),
+            currency or "",
+            suffix,
+        )
+
+    match = single_pattern.search(text)
+    if match:
+        amount, currency, unit_prefix, unit_a, unit_b, annually = match.groups()
+        unit = unit_a or unit_b or annually or ""
+        salary = _normalize_money(amount)
+        if currency:
+            salary = f"{salary} {currency.upper()}"
+        suffix = _visible_salary_suffix(unit, unit_prefix)
+        return f"{salary} {suffix}".strip()
+    return ""
+
+
+def _normalize_salary_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.replace("–", "-").replace("—", "-")).strip()
+
+
+def _normalize_money(value: str) -> str:
+    amount = re.sub(r"\s+", "", value.strip().rstrip(".,;:"))
+    amount = amount.replace("CA$", "CA$")
+    return re.sub(r"\.00\b", "", amount)
+
+
+def _format_salary_range(amount_a: str, amount_b: str, currency: str, suffix: str) -> str:
+    salary_range = f"{amount_a}-{amount_b}"
+    if currency and not amount_a.upper().startswith("CA$"):
+        salary_range = f"{salary_range} {currency.upper()}"
+    if suffix:
+        salary_range = f"{salary_range} {suffix}"
+    return salary_range
+
+
+def _visible_salary_suffix(unit: str, unit_prefix: str | None) -> str:
+    normalized = unit.strip().lower()
+    if normalized == "annually":
+        return "annually"
+    if normalized in {"year", "yr"}:
+        return "a year" if unit_prefix and unit_prefix.lower() == "a" else "per year"
+    if normalized in {"hour", "hr"}:
+        return "an hour" if unit_prefix and unit_prefix.lower() == "a" else "per hour"
+    return ""
+
+
+def _looks_like_salary_context(value: str) -> bool:
+    lower = value.lower()
+    return any(
+        marker in lower
+        for marker in (
+            "salary",
+            "base pay",
+            "pay range",
+            "compensation",
+            "pay:",
+            "rate-",
+            "rate:",
+        )
+    )
+
+
+def _starts_with_money(value: str) -> bool:
+    return bool(re.match(r"^(?:CA\s*)?\$", value.strip()))
 
 
 def _html_to_text(value: str) -> str:

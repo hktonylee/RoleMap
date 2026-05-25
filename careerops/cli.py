@@ -10,7 +10,11 @@ from typing import Sequence
 from urllib.parse import urlparse
 
 from careerops.db import connect, initialize_database
-from careerops.job_sources import clean_source_description, fetch_source_description
+from careerops.job_sources import (
+    clean_source_description,
+    extract_salary_range,
+    fetch_source_job,
+)
 from careerops.jobs import JobInput, JobRepository
 
 
@@ -71,6 +75,21 @@ def _build_parser() -> argparse.ArgumentParser:
     backfill_parser.add_argument("--min-length", type=int, default=120)
     backfill_parser.add_argument("--overwrite", action="store_true")
     backfill_parser.set_defaults(handler=_handle_backfill_descriptions)
+
+    salary_parser = subparsers.add_parser(
+        "backfill-salaries",
+        help="fill missing salary ranges from saved descriptions or source URLs",
+    )
+    salary_parser.add_argument("--dry-run", action="store_true")
+    salary_parser.add_argument("--limit", type=int, default=0)
+    salary_parser.add_argument("--overwrite", action="store_true")
+    salary_parser.add_argument("--source", choices=("indeed", "all"), default="indeed")
+    salary_parser.add_argument(
+        "--fetch",
+        action="store_true",
+        help="fetch source URLs when the saved description has no salary text",
+    )
+    salary_parser.set_defaults(handler=_handle_backfill_salaries)
 
     clean_parser = subparsers.add_parser(
         "clean-descriptions",
@@ -158,7 +177,8 @@ def _handle_backfill_descriptions(args: argparse.Namespace, repository: JobRepos
 
         attempted += 1
         try:
-            description = fetch_source_description(url).strip()
+            source_job = fetch_source_job(url)
+            description = source_job.description.strip()
         except OSError as exc:
             print(f"skipped {row['id']}: {exc}", file=sys.stderr)
             continue
@@ -173,10 +193,52 @@ def _handle_backfill_descriptions(args: argparse.Namespace, repository: JobRepos
             continue
 
         repository.update_description(int(row["id"]), description)
+        if source_job.salary_range and (args.overwrite or not row["salary_range"]):
+            repository.update_salary_range(int(row["id"]), source_job.salary_range)
         updated += 1
         print(row["id"])
 
     print(f"Backfilled {updated} descriptions", file=sys.stderr)
+    return 0
+
+
+def _handle_backfill_salaries(args: argparse.Namespace, repository: JobRepository) -> int:
+    attempted = 0
+    updated = 0
+    for row in repository.list():
+        url = str(row["url"] or "")
+        if getattr(args, "source", "indeed") == "indeed" and not _is_indeed_url(url):
+            continue
+        if row["salary_range"] and not args.overwrite:
+            continue
+        if args.limit and attempted >= args.limit:
+            break
+        attempted += 1
+
+        salary_range = extract_salary_range(str(row["description"] or ""))
+        source = "description"
+        if not salary_range and args.fetch and url and _looks_like_job_posting_url(url):
+            try:
+                source_job = fetch_source_job(url)
+            except OSError as exc:
+                print(f"skipped {row['id']}: {exc}", file=sys.stderr)
+                continue
+            salary_range = source_job.salary_range
+            source = "source"
+
+        if not salary_range:
+            continue
+
+        if args.dry_run:
+            print(f"{row['id']}\t{source}\t{salary_range}\t{url}")
+            updated += 1
+            continue
+
+        repository.update_salary_range(int(row["id"]), salary_range)
+        updated += 1
+        print(row["id"])
+
+    print(f"Backfilled {updated} salary ranges", file=sys.stderr)
     return 0
 
 
@@ -230,22 +292,42 @@ def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
         items = raw if isinstance(raw, list) else [raw]
         if not all(isinstance(item, dict) for item in items):
             raise ValueError("JSON input must be an object or an array of objects")
-        return [JobInput.from_mapping(item) for item in items]
+        return [_with_extracted_salary(JobInput.from_mapping(item)) for item in items]
 
     description = args.description
     if args.description_file:
         description = Path(args.description_file).read_text(encoding="utf-8")
 
     return [
-        JobInput(
-            publish_date=args.publish_date,
-            job_title=args.job_title,
-            company_name=args.company_name,
-            description=description,
-            url=args.url,
-            salary_range=args.salary_range,
+        _with_extracted_salary(
+            JobInput(
+                publish_date=args.publish_date,
+                job_title=args.job_title,
+                company_name=args.company_name,
+                description=description,
+                url=args.url,
+                salary_range=args.salary_range,
+            )
         )
     ]
+
+
+def _with_extracted_salary(job: JobInput) -> JobInput:
+    if job.salary_range or not _is_indeed_url(job.url):
+        return job
+
+    salary_range = extract_salary_range(job.description)
+    if not salary_range:
+        return job
+
+    return JobInput(
+        publish_date=job.publish_date,
+        job_title=job.job_title,
+        company_name=job.company_name,
+        description=job.description,
+        url=job.url,
+        salary_range=salary_range,
+    )
 
 
 def _format_job(row: sqlite3.Row) -> str:
@@ -279,3 +361,7 @@ def _looks_like_job_posting_url(value: str) -> bool:
     if "glassdoor." in host:
         return path.startswith("/partner/joblisting") or path.startswith("/job-listing/")
     return True
+
+
+def _is_indeed_url(value: str) -> bool:
+    return "indeed." in urlparse(value).netloc.lower()
