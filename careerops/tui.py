@@ -288,7 +288,7 @@ class _JobBrowser:
         self._add_line(
             1,
             0,
-            "Esc/q/Left back  PgUp/PgDn/Home/End scroll  u open URL  G generate resume",
+            "Esc/q/Left back  PgUp/PgDn/Home/End  Enter open URL  G generate resume",
             width,
         )
 
@@ -397,7 +397,7 @@ class _JobBrowser:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
             return False
-        if key in (ord("u"), ord("U")) and row is not None:
+        if key in (curses.KEY_ENTER, 10, 13) and row is not None:
             self._open_job_url(row, opener)
             return False
         if key in (ord("G"), ord("g")) and row is not None:

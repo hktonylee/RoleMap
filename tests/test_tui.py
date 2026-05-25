@@ -419,7 +419,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
-        self.assertIn("u open URL", screen.lines[1])
+        self.assertIn("Enter open URL", screen.lines[1])
         self.assertIn("G generate resume", screen.lines[1])
 
     def test_g_key_opens_template_selection_from_detail_view(self) -> None:
@@ -462,7 +462,31 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("Put your detailed resume in templates/", browser.status_message)
         self.assertIn("resume_templates/", browser.status_message)
 
-    def test_u_key_opens_job_url_with_browser_environment_variable(self) -> None:
+    def test_enter_key_opens_job_url_with_browser_environment_variable(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+        launched_commands = []
+
+        with patch.dict(os.environ, {"BROWSER": "firefox --new-tab"}):
+            should_quit = browser._handle_detail_key(
+                curses.KEY_ENTER,
+                {
+                    "id": 42,
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "url": "https://example.com/jobs/staff",
+                    "description": "Build systems.",
+                },
+                opener=lambda command: launched_commands.append(command),
+            )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(
+            launched_commands,
+            [["firefox", "--new-tab", "https://example.com/jobs/staff"]],
+        )
+
+    def test_u_key_does_not_open_job_url_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
         browser.mode = "detail"
         launched_commands = []
@@ -481,10 +505,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             )
 
         self.assertFalse(should_quit)
-        self.assertEqual(
-            launched_commands,
-            [["firefox", "--new-tab", "https://example.com/jobs/staff"]],
-        )
+        self.assertEqual(launched_commands, [])
 
     def test_template_selection_runs_resume_generation(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
