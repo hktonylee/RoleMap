@@ -2,7 +2,7 @@
 
 CareerOps is a local-first career operations toolkit for collecting, storing, and browsing job descriptions. It keeps job records in SQLite so local scripts, Codex workflows, a terminal UI, and future resume-generation tools can work from the same source of truth.
 
-The repository currently focuses on one durable domain object: `jobs`. Each job record stores the publish date, title, company, full source-backed description, canonical posting URL, salary range, local update timestamp, and creation timestamp.
+The repository currently focuses on one durable domain object: `jobs`. Each job record stores the publish date, title, company, full source-backed description, canonical posting URL, salary range, expired flag, local update timestamp, and creation timestamp.
 
 ## What This Repository Is Used For
 
@@ -92,7 +92,7 @@ Open the terminal UI:
 python -m careerops tui
 ```
 
-`list-jobs` also opens the interactive list when stdin and stdout are both terminals. When output is redirected or piped, it prints tab-separated rows.
+`list-jobs` also opens the interactive list when stdin and stdout are both terminals. When output is redirected or piped, it prints tab-separated rows with `id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`, `is_expired`, and `last_update`.
 
 ## JSON Imports
 
@@ -138,7 +138,7 @@ Import several jobs from one JSON array:
 ]
 ```
 
-CareerOps treats `job_title`, `company_name`, and `description` as required fields. `publish_date`, `url`, and `salary_range` can be empty strings when unknown. Do not provide `last_update`; CareerOps sets it locally when a row is inserted or updated.
+CareerOps treats `job_title`, `company_name`, and `description` as required fields. `publish_date`, `url`, and `salary_range` can be empty strings when unknown. `is_expired` is optional and defaults to false. Do not provide `last_update`; CareerOps sets it locally when a row is inserted or updated.
 
 If a URL is present, importing the same URL again updates the existing row and refreshes `last_update`.
 
@@ -160,6 +160,7 @@ In the terminal UI:
 
 - Type to filter jobs by publish date, company, title, description, URL, or salary range.
 - Press `o` to choose a sort column.
+- Press Space to toggle the selected job's expired state. Expired rows are dimmed and struck through.
 - Press Enter or Right to open details.
 - Press Up, Down, Page Up, Page Down, Home, or End to scroll.
 - Press Esc, `q`, or Left to go back or quit.

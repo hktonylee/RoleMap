@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from careerops.cli import (
+    _format_job,
     _handle_backfill_descriptions,
     _handle_clean_descriptions,
     _handle_list_jobs,
@@ -61,9 +62,16 @@ class ListJobsCliTest(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertIn(
-            "Example Systems\tStaff Engineer\t$180k-$220k",
+            "Example Systems\tStaff Engineer\t$180k-$220k\thttps://example.com/jobs/staff\t0\t",
             stdout.getvalue(),
         )
+
+    def test_format_job_includes_expired_state(self) -> None:
+        row = self.repository.list()[0]
+
+        output = _format_job(row)
+
+        self.assertIn("Expired: no", output)
 
 
 class BackfillDescriptionsCliTest(unittest.TestCase):
