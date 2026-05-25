@@ -69,6 +69,7 @@ def extract_salary_range(value: str) -> str:
 def clean_source_description(value: str) -> str:
     text = _normalize_text(value)
     text = _strip_linkedin_chrome(text)
+    text = _strip_indeed_chrome(text)
     text = _remove_known_site_lines(text)
     return _normalize_text(text)
 
@@ -368,6 +369,63 @@ def _is_probable_jd_start(paragraph: str) -> bool:
         "WHO WE ARE",
     }
     return paragraph in starts
+
+
+def _strip_indeed_chrome(value: str) -> str:
+    paragraphs = _paragraphs(value)
+    if not _looks_like_indeed_text(paragraphs):
+        return value
+
+    start_index = _first_index(paragraphs, _is_indeed_content_boundary)
+    if start_index is None:
+        return value
+
+    paragraphs = paragraphs[start_index + 1 :]
+    while paragraphs and _is_indeed_leading_boilerplate(paragraphs[0]):
+        paragraphs = paragraphs[1:]
+    return "\n\n".join(paragraphs)
+
+
+def _looks_like_indeed_text(paragraphs: list[str]) -> bool:
+    markers = {
+        "Company reviews",
+        "Salary guide",
+        "Employers / Post Job",
+        "Start of main content",
+    }
+    return any(paragraph in markers for paragraph in paragraphs)
+
+
+def _is_indeed_content_boundary(paragraph: str) -> bool:
+    return paragraph == "Start of main content" or _is_indeed_search_controls(paragraph)
+
+
+def _is_indeed_leading_boilerplate(paragraph: str) -> bool:
+    boilerplate = {
+        "Home",
+        "Company reviews",
+        "Salary guide",
+        "Sign in",
+        "Employers / Post Job",
+        "Start of main content",
+    }
+    return (
+        paragraph in boilerplate
+        or paragraph.endswith(" new update")
+        or _is_indeed_locale_switcher(paragraph)
+        or _is_indeed_search_controls(paragraph)
+    )
+
+
+def _is_indeed_locale_switcher(paragraph: str) -> bool:
+    return (
+        (paragraph.startswith("En") and "English" in paragraph)
+        or (paragraph.startswith("Fr") and "Français" in paragraph)
+    )
+
+
+def _is_indeed_search_controls(paragraph: str) -> bool:
+    return paragraph.startswith("What") and paragraph.endswith("Find Jobs")
 
 
 def _remove_known_site_lines(value: str) -> str:

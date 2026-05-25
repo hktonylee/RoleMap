@@ -202,6 +202,40 @@ class JobSourceExtractionTest(unittest.TestCase):
             "Company Overview\n\nWe build useful products.\n\nPosition Overview\n\nOwn backend services.",
         )
 
+    def test_clean_source_description_removes_indeed_header_chrome(self) -> None:
+        source = """
+        Home
+
+        Company reviews
+
+        Salary guide
+
+        Sign in
+
+        Sign in
+
+        1 new update
+
+        EnEnglish
+
+        FrFrançais
+
+        Employers / Post Job
+
+        Start of main content
+
+        WhatWhereFind Jobs
+
+        Staff Software Engineer
+
+        Build reliable systems for customers.
+        """
+
+        self.assertEqual(
+            clean_source_description(source),
+            "Staff Software Engineer\n\nBuild reliable systems for customers.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
