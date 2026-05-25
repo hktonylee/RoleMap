@@ -160,7 +160,7 @@ python -m careerops list-jobs --query "remote" > /tmp/jobs.tsv
 In the terminal UI:
 
 - Type to filter jobs by publish date, company, title, description, URL, or salary range.
-- Press `o` to choose a sort column.
+- Press `o` to choose a sort column. Use lowercase for ascending order or uppercase for descending order.
 - Press Space to toggle the selected job's expired state. Expired rows are dimmed and struck through.
 - Press Enter or Right to open details.
 - Press Up, Down, Page Up, Page Down, Home, or End to scroll.

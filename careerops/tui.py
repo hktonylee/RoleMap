@@ -61,10 +61,19 @@ def _format_list_header(widths: tuple[int, int, int, int]) -> str:
     )
 
 
-def _sort_list_rows(rows: Sequence[JobRow], column: str | None) -> list[JobRow]:
+def _sort_list_rows(
+    rows: Sequence[JobRow],
+    column: str | None,
+    reverse: bool = False,
+) -> list[JobRow]:
     if column is None:
         return list(rows)
-    return sorted(rows, key=lambda row: _sort_value(row, column))
+    populated = [row for row in rows if _row_text(row, column)]
+    empty = [row for row in rows if not _row_text(row, column)]
+    return (
+        sorted(populated, key=lambda row: _sort_value(row, column), reverse=reverse)
+        + empty
+    )
 
 
 def _sort_value(row: JobRow, column: str) -> tuple[bool, str]:
@@ -102,11 +111,9 @@ def _list_row_attrs(row: JobRow, selected: bool) -> int:
 
 
 def _format_other_information(row: JobRow) -> str:
-    last_update = _row_text(row, "last_update")
     values = [
         _row_text(row, "salary_range"),
         _row_text(row, "url"),
-        f"Updated {last_update}" if last_update else "",
     ]
     return " | ".join(value for value in values if value)
 
@@ -181,6 +188,8 @@ class _JobBrowser:
         self.selected = 0
         self.mode = "list"
         self.sort_column: str | None = None
+        self.sort_reverse = False
+        self.search_active = False
         self.detail_scroll = 0
         self.status_message = ""
         self.template_templates: list[ResumeTemplate] = []
@@ -191,7 +200,11 @@ class _JobBrowser:
         curses.curs_set(0)
         self.stdscr.keypad(True)
         while True:
-            rows = _sort_list_rows(self.repository.search(self.query), self.sort_column)
+            rows = _sort_list_rows(
+                self.repository.search(self.query),
+                self.sort_column,
+                reverse=self.sort_reverse,
+            )
             if self.selected >= len(rows):
                 self.selected = max(0, len(rows) - 1)
 
@@ -221,15 +234,23 @@ class _JobBrowser:
 
     def _draw_list(self, rows: Sequence[JobRow]) -> None:
         height, width = self.stdscr.getmaxyx()
-        self._add_line(0, 0, f"Search: {self.query}", width, curses.A_BOLD)
+        search_suffix = "_" if self.search_active else ""
+        self._add_line(0, 0, f"Search: {self.query}{search_suffix}", width, curses.A_BOLD)
         sort_label = _SORT_LABEL_BY_COLUMN.get(self.sort_column, "Default")
+        if self.sort_column is not None and self.sort_reverse:
+            sort_label = f"{sort_label} desc"
+        help_text = (
+            "Typing search  Enter/Esc done  Backspace delete"
+            if self.search_active
+            else (
+                "/ search  o sort  Enter/Right details  Esc/q quit  "
+                "Up/Down/PgUp/PgDn/Home/End move"
+            )
+        )
         self._add_line(
             1,
             0,
-            (
-                f"Sort: {sort_label}  o sort  Enter/Right details  Esc/q quit  "
-                "Up/Down/PgUp/PgDn/Home/End move"
-            ),
+            f"Sort: {sort_label}  {help_text}",
             width,
         )
 
@@ -253,10 +274,10 @@ class _JobBrowser:
     def _draw_sort_selector(self) -> None:
         _height, width = self.stdscr.getmaxyx()
         self._add_line(0, 0, "Choose sort column", width, curses.A_BOLD)
-        self._add_line(1, 0, "Esc/q cancel", width)
+        self._add_line(1, 0, "Lowercase asc  Uppercase desc  Esc/q cancel", width)
         for index, (key, column, label) in enumerate(_SORT_COLUMNS, start=3):
             marker = "*" if column == self.sort_column else " "
-            self._add_line(index, 0, f"{marker} {key}  {label}", width)
+            self._add_line(index, 0, f"{marker} {key}/{key.upper()}  {label}", width)
 
     def _draw_detail(self, row: JobRow) -> None:
         height, width = self.stdscr.getmaxyx()
@@ -298,6 +319,8 @@ class _JobBrowser:
             self._add_line(index + 4, 0, f"{marker} {template.display_name}", width, attrs)
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
+        if self.search_active and self._handle_search_key(key):
+            return False
         if key in (ord("q"), 27):
             return True
         if key in (curses.KEY_DOWN, 14):
@@ -329,23 +352,35 @@ class _JobBrowser:
         if key == ord(" ") and rows:
             self.repository.toggle_expired(int(rows[self.selected]["id"]))
             return False
+        if key == ord("/"):
+            self.search_active = True
+            return False
+        return False
+
+    def _handle_search_key(self, key: int) -> bool:
+        if key in (curses.KEY_ENTER, 10, 13, 27):
+            self.search_active = False
+            return True
         if key in (curses.KEY_BACKSPACE, 127, 8):
             self.query = self.query[:-1]
             self.selected = 0
-            return False
+            return True
         if 32 <= key <= 126:
             self.query += chr(key)
             self.selected = 0
+            return True
         return False
 
     def _handle_sort_key(self, key: int) -> bool:
         if key in (ord("q"), 27):
             self.mode = "list"
             return False
-        column = _SORT_COLUMN_BY_KEY.get(chr(key).lower()) if 0 <= key <= 255 else None
+        typed = chr(key) if 0 <= key <= 255 else ""
+        column = _SORT_COLUMN_BY_KEY.get(typed.lower())
         if column is None:
             return False
         self.sort_column = column
+        self.sort_reverse = typed.isupper()
         self.selected = 0
         self.mode = "list"
         return False

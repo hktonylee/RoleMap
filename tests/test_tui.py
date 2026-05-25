@@ -144,6 +144,23 @@ class TuiListFormattingTest(unittest.TestCase):
 
         self.assertEqual(screen.lines[0].count("\u0336"), 19)
 
+    def test_other_column_omits_last_update_time(self) -> None:
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "$180k-$220k",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "2026-05-24T12:20:01-07:00",
+        }
+
+        line = _format_list_row(row, _list_column_widths(160), selected=False)
+
+        self.assertIn("$180k-$220k | https://example.com/jobs/staff", line)
+        self.assertNotIn("Updated", line)
+        self.assertNotIn("2026-05-24T12:20:01-07:00", line)
+
 
 class TuiSortingTest(unittest.TestCase):
     def test_sort_list_rows_uses_selected_column(self) -> None:
@@ -176,6 +193,22 @@ class TuiSortingTest(unittest.TestCase):
             ["Alpha Systems", "Zulu Labs"],
         )
 
+    def test_sort_list_rows_can_reverse_selected_column(self) -> None:
+        rows = [
+            {"company_name": "Alpha Systems"},
+            {"company_name": "Zulu Labs"},
+        ]
+
+        try:
+            sorted_rows = tui._sort_list_rows(rows, "company_name", reverse=True)
+        except TypeError:
+            self.fail("_sort_list_rows should accept reverse=True")
+
+        self.assertEqual(
+            [row["company_name"] for row in sorted_rows],
+            ["Zulu Labs", "Alpha Systems"],
+        )
+
     def test_o_key_opens_sort_column_selection(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
 
@@ -195,6 +228,18 @@ class TuiSortingTest(unittest.TestCase):
         self.assertEqual(browser.mode, "list")
         self.assertEqual(browser.sort_column, "company_name")
         self.assertEqual(browser.selected, 0)
+
+    def test_uppercase_sort_column_selection_reverses_active_sort(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "sort"
+
+        should_exit = browser._handle_sort_key(ord("C"))
+
+        self.assertFalse(should_exit)
+        self.assertEqual(browser.mode, "list")
+        self.assertEqual(browser.sort_column, "company_name")
+        self.assertTrue(hasattr(browser, "sort_reverse"))
+        self.assertTrue(browser.sort_reverse)
 
 
 class JobBrowserKeyHandlingTest(unittest.TestCase):
@@ -225,6 +270,42 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         should_quit = browser._handle_list_key(curses.KEY_HOME, rows)
 
         self.assertFalse(should_quit)
+        self.assertEqual(browser.selected, 0)
+
+    def test_printable_keys_do_not_change_query_until_search_is_focused(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.query = "remote"
+        browser.selected = 2
+
+        should_quit = browser._handle_list_key(ord("a"), [])
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.query, "remote")
+        self.assertEqual(browser.selected, 2)
+
+    def test_backspace_does_not_change_query_until_search_is_focused(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.query = "remote"
+        browser.selected = 2
+
+        should_quit = browser._handle_list_key(curses.KEY_BACKSPACE, [])
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.query, "remote")
+        self.assertEqual(browser.selected, 2)
+
+    def test_slash_focuses_search_so_o_types_query_instead_of_sorting(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+
+        should_quit = browser._handle_list_key(ord("/"), [])
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.query, "")
+
+        should_quit = browser._handle_list_key(ord("o"), [])
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "list")
+        self.assertEqual(browser.query, "o")
         self.assertEqual(browser.selected, 0)
 
     def test_right_arrow_opens_selected_job_details(self) -> None:
