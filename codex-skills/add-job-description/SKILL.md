@@ -1,5 +1,5 @@
 ---
-name: careerops-add-job-description
+name: add-job-description
 description: Add a job description to the local CareerOps SQLite database from pasted text, email extracts, company pages, or other JD sources.
 ---
 
