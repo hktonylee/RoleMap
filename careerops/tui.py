@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import curses
+import os
+import shlex
 import subprocess
 import textwrap
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from careerops.jobs import JobRepository, JobRow
 from careerops.resumes import (
@@ -286,7 +288,7 @@ class _JobBrowser:
         self._add_line(
             1,
             0,
-            "Esc/q/Left back  Up/Down/PgUp/PgDn/Home/End scroll  G generate resume",
+            "Esc/q/Left back  PgUp/PgDn/Home/End scroll  u open URL  G generate resume",
             width,
         )
 
@@ -390,9 +392,13 @@ class _JobBrowser:
         key: int,
         row: JobRow | None = None,
         templates: Sequence[ResumeTemplate] | None = None,
+        opener: Callable[[list[str]], object] | None = None,
     ) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
+            return False
+        if key in (ord("u"), ord("U")) and row is not None:
+            self._open_job_url(row, opener)
             return False
         if key in (ord("G"), ord("g")) and row is not None:
             available_templates = list(discover_templates() if templates is None else templates)
@@ -433,6 +439,27 @@ class _JobBrowser:
             self.detail_scroll = max(0, self.detail_scroll - 1)
             return False
         return False
+
+    def _open_job_url(
+        self,
+        row: JobRow,
+        opener: Callable[[list[str]], object] | None = None,
+    ) -> None:
+        url = _row_text(row, "url")
+        if not url:
+            self.status_message = "No URL saved for this job."
+            return
+        browser = os.environ.get("BROWSER", "").strip()
+        if not browser:
+            self.status_message = "BROWSER is not set."
+            return
+        launch = subprocess.Popen if opener is None else opener
+        try:
+            launch(shlex.split(browser) + [url])
+        except OSError as exc:
+            self.status_message = f"Open URL failed: {exc}"
+        else:
+            self.status_message = f"Opened URL: {url}"
 
     def _handle_template_key(
         self,
