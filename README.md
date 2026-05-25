@@ -187,8 +187,11 @@ Each run contains:
 - a copy of the selected resume template
 - `job-description.txt`
 - `tailoring-prompt.md`
+- `tailored-resume.html`, written by the generator
 
-By default, CareerOps prepares those files without calling an external AI tool. To run your own background generator, set `CAREEROPS_RESUME_GENERATOR` to a command. CareerOps runs the command from the generated output directory and provides these environment variables:
+After preparing those files, CareerOps temporarily leaves the job browser and opens the Codex interactive CLI in the terminal. When Codex exits, CareerOps redraws the job detail view with the path to `tailored-resume.html`.
+
+To run a different visible generator command, set `CAREEROPS_RESUME_GENERATOR`. CareerOps runs the command from the generated output directory and provides these environment variables:
 
 ```text
 CAREEROPS_RESUME_TEMPLATE
@@ -196,6 +199,7 @@ CAREEROPS_RESUME_TEMPLATE_COPY
 CAREEROPS_RESUME_PROMPT
 CAREEROPS_RESUME_JOB_DESCRIPTION
 CAREEROPS_RESUME_OUTPUT_DIR
+CAREEROPS_RESUME_RESULT_HTML
 ```
 
 ## Maintaining Source-Backed Descriptions

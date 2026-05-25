@@ -1,5 +1,6 @@
 import unittest
 import curses
+from types import SimpleNamespace
 
 import careerops.tui as tui
 from careerops.tui import (
@@ -388,16 +389,26 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         browser.template_templates = [template]
         browser.template_job = row
         generated: list[tuple[object, object]] = []
+        terminal_sessions = []
+        result = SimpleNamespace(
+            output_dir="/tmp/generated/resume",
+            result_html_path="/tmp/generated/resume/tailored-resume.html",
+        )
 
         should_quit = browser._handle_template_key(
             curses.KEY_ENTER,
-            generate=lambda job, selected_template: generated.append((job, selected_template)),
+            generate=lambda job, selected_template, run_command=False: (
+                generated.append((job, selected_template, run_command)) or result
+            ),
+            run_generator=lambda generation_result: terminal_sessions.append(generation_result),
+            show_terminal=lambda operation: operation(),
         )
 
         self.assertFalse(should_quit)
-        self.assertEqual(generated, [(row, template)])
+        self.assertEqual(generated, [(row, template, False)])
+        self.assertEqual(terminal_sessions, [result])
         self.assertEqual(browser.mode, "detail")
-        self.assertIn("Resume generation prepared", browser.status_message)
+        self.assertIn("Resume HTML: /tmp/generated/resume/tailored-resume.html", browser.status_message)
 
     def test_detail_basic_info_stays_visible_while_description_scrolls(self) -> None:
         screen = RecordingScreen()

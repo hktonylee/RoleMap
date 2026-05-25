@@ -6,7 +6,12 @@ import textwrap
 from collections.abc import Sequence
 
 from careerops.jobs import JobRepository, JobRow
-from careerops.resumes import ResumeTemplate, discover_templates, generate_resume
+from careerops.resumes import (
+    ResumeTemplate,
+    discover_templates,
+    generate_resume,
+    run_resume_generator,
+)
 
 
 _COLUMN_GAP = "  "
@@ -391,7 +396,13 @@ class _JobBrowser:
             return False
         return False
 
-    def _handle_template_key(self, key: int, generate=generate_resume) -> bool:
+    def _handle_template_key(
+        self,
+        key: int,
+        generate=generate_resume,
+        run_generator=run_resume_generator,
+        show_terminal=None,
+    ) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "detail"
             return False
@@ -415,15 +426,29 @@ class _JobBrowser:
             result = generate(
                 self.template_job,
                 self.template_templates[self.template_selected],
+                run_command=False,
             )
+            terminal = self._show_terminal if show_terminal is None else show_terminal
+            terminal(lambda: run_generator(result))
         except (OSError, subprocess.CalledProcessError, ValueError) as exc:
             self.status_message = f"Resume generation failed: {exc}"
         else:
-            output_dir = getattr(result, "output_dir", None)
-            suffix = f": {output_dir}" if output_dir is not None else "."
-            self.status_message = f"Resume generation prepared{suffix}"
+            self.status_message = f"Resume HTML: {result.result_html_path}"
         self.mode = "detail"
         return False
+
+    def _show_terminal(self, operation):
+        curses.def_prog_mode()
+        curses.endwin()
+        try:
+            return operation()
+        finally:
+            curses.reset_prog_mode()
+            self.stdscr.keypad(True)
+            try:
+                curses.curs_set(0)
+            except curses.error:
+                pass
 
     def _add_line(
         self,

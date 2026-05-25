@@ -9,8 +9,9 @@ Add a local-first resume generation flow to the job details view. A user keeps d
 - Discover resume template files from `templates/` and `resume_templates/`.
 - Let the TUI details view open a template picker with `G`.
 - Generate a job-specific output directory containing the selected template copy, the job description, and a prompt for tailoring the resume.
-- Run a configured background command when `CAREEROPS_RESUME_GENERATOR` is set.
-- Fall back to writing the prompt and template copy without calling an external generator when no command is configured.
+- Temporarily leave the curses UI and show the Codex interactive CLI while generation runs.
+- Redraw the job detail view after Codex exits, with a status message pointing at the result HTML file.
+- Run a configured visible command when `CAREEROPS_RESUME_GENERATOR` is set; otherwise default to `codex`.
 
 ## Architecture
 
@@ -25,6 +26,7 @@ The generator command receives environment variables instead of hardcoded provid
 - `CAREEROPS_RESUME_PROMPT`: generated prompt path.
 - `CAREEROPS_RESUME_JOB_DESCRIPTION`: generated job description path.
 - `CAREEROPS_RESUME_OUTPUT_DIR`: output directory for the run.
+- `CAREEROPS_RESUME_RESULT_HTML`: expected final tailored resume HTML path.
 
 This keeps CareerOps independent from any one AI backend while still making the background step scriptable.
 
@@ -35,8 +37,9 @@ This keeps CareerOps independent from any one AI backend while still making the 
 3. User selects a template.
 4. `careerops.resumes.generate_resume()` creates `generated/resumes/<job-id>-<company>-<title>-<timestamp>/`.
 5. The module writes `job-description.txt`, `tailoring-prompt.md`, and a copy of the chosen template.
-6. If `CAREEROPS_RESUME_GENERATOR` is set, CareerOps runs it with the generated paths in the environment.
-7. The TUI shows success or a short error message.
+6. The prompt instructs the generator to write `tailored-resume.html` in the output directory.
+7. CareerOps suspends curses and launches the visible generator command, defaulting to interactive `codex`.
+8. When the generator exits, CareerOps restores the details view and shows the result HTML path or a short error.
 
 ## Error Handling
 
@@ -44,4 +47,4 @@ If no templates exist, the TUI shows a status message and stays on the details v
 
 ## Tests
 
-Tests cover template discovery, prompt/output creation, configured command execution, the detail help text, `G` opening the template picker, no-template handling, and selecting a template from the picker.
+Tests cover template discovery, prompt/output creation, result HTML path creation, visible Codex command construction, configured command execution, the detail help text, `G` opening the template picker, no-template handling, and selecting a template from the picker.

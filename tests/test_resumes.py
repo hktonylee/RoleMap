@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from careerops.resumes import discover_templates, generate_resume
+from careerops.resumes import discover_templates, generate_resume, run_resume_generator
 
 
 class ResumeTemplateDiscoveryTest(unittest.TestCase):
@@ -53,6 +53,8 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertIn("Example Systems", prompt)
         self.assertIn("Staff Platform Engineer", prompt)
         self.assertIn(str(result.template_copy_path), prompt)
+        self.assertIn(str(result.result_html_path), prompt)
+        self.assertEqual(result.result_html_path.name, "tailored-resume.html")
         self.assertFalse(result.command_ran)
 
     def test_generate_resume_runs_configured_command_with_generated_paths(self) -> None:
@@ -89,6 +91,37 @@ class ResumeGenerationTest(unittest.TestCase):
 
         self.assertTrue(result.command_ran)
         self.assertEqual(marker_text, str(result.prompt_path))
+
+    def test_run_resume_generator_defaults_to_interactive_codex_with_result_html_env(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            template = root / "templates" / "master.md"
+            template.parent.mkdir()
+            template.write_text("# Resume", encoding="utf-8")
+            row = {
+                "id": 7,
+                "company_name": "Acme Labs",
+                "job_title": "Backend Engineer",
+                "description": "Build APIs.",
+                "url": "",
+                "salary_range": "",
+                "publish_date": "",
+            }
+            result = generate_resume(row, template, root=root, environ={})
+            calls = []
+
+            run_resume_generator(
+                result,
+                environ={},
+                command_runner=lambda command, **kwargs: calls.append((command, kwargs)),
+            )
+
+        command, kwargs = calls[0]
+        self.assertEqual(command[0], "codex")
+        self.assertEqual(command[1], "--cd")
+        self.assertEqual(command[2], str(result.output_dir))
+        self.assertIn(str(result.result_html_path), command[3])
+        self.assertEqual(kwargs["env"]["CAREEROPS_RESUME_RESULT_HTML"], str(result.result_html_path))
 
 
 if __name__ == "__main__":
