@@ -6,7 +6,7 @@ Build a local, SQLite-centered CareerOps system for storing and browsing job des
 
 ## Requirements
 
-- Store jobs in SQLite with at least: publish date, job title, company name, description, URL, salary range, and last local update time.
+- Store jobs in SQLite with at least: publish date, job title, company name, description, URL, salary range, expired flag, and last local update time.
 - Provide a Codex skill that tells Codex how to add a job description from external sources such as email, company sites, or pasted JD text.
 - Provide an interactive terminal UI with a filterable fzf-like job list and a details viewer.
 - Keep the implementation dependency-light and local-first.
@@ -34,10 +34,11 @@ The `jobs` table uses a stable integer primary key and stores source data as tex
 - `description`
 - `url`
 - `salary_range`
+- `is_expired`
 - `last_update`
 - `created_at`
 
-`url` is unique when present so repeated imports from the same job posting update the existing row. `last_update` is always set by the local system in ISO-8601 local time when the record is inserted or updated.
+`url` is unique when present so repeated imports from the same job posting update the existing row. `is_expired` is a local tracking flag for postings that should remain in history but no longer be treated as active. `last_update` is always set by the local system in ISO-8601 local time when the record is inserted or updated.
 
 ## CLI And TUI
 
@@ -52,7 +53,7 @@ CLI commands:
 - `careerops show-job ID`
 - `careerops tui`
 
-The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing `o` opens a sort-column selector for the list. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
+The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed and struck through. Pressing `o` opens a sort-column selector for the list. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
 
 ## Error Handling
 

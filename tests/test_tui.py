@@ -6,6 +6,7 @@ from careerops.tui import (
     _JobBrowser,
     _format_list_header,
     _format_list_row,
+    _list_row_attrs,
     _list_column_widths,
 )
 
@@ -24,6 +25,20 @@ class RecordingScreen(FakeScreen):
 
     def addstr(self, y: int, x: int, text: str, attrs: int = curses.A_NORMAL) -> None:
         self.lines[y] = text
+
+
+class NarrowRecordingScreen(RecordingScreen):
+    def getmaxyx(self) -> tuple[int, int]:
+        return (24, 20)
+
+
+class ToggleRepository:
+    def __init__(self) -> None:
+        self.toggled_ids: list[int] = []
+
+    def toggle_expired(self, job_id: int) -> bool:
+        self.toggled_ids.append(job_id)
+        return True
 
 
 class TuiListFormattingTest(unittest.TestCase):
@@ -69,6 +84,48 @@ class TuiListFormattingTest(unittest.TestCase):
 
     def test_list_header_keeps_publish_date_label_at_standard_terminal_width(self) -> None:
         self.assertIn("Publish date", _format_list_header(_list_column_widths(80)))
+
+    def test_expired_list_row_uses_dim_attrs_and_strikethrough_text(self) -> None:
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "$180k-$220k",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "2026-05-24T12:20:01-07:00",
+            "is_expired": 1,
+        }
+
+        line = _format_list_row(row, _list_column_widths(160), selected=False)
+        attrs = _list_row_attrs(row, selected=True)
+
+        self.assertIn("\u0336", line)
+        self.assertTrue(attrs & curses.A_DIM)
+        self.assertTrue(attrs & curses.A_REVERSE)
+
+    def test_expired_list_row_clips_by_visible_width(self) -> None:
+        screen = NarrowRecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "$180k-$220k",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "2026-05-24T12:20:01-07:00",
+            "is_expired": 1,
+        }
+
+        browser._add_line(
+            0,
+            0,
+            _format_list_row(row, _list_column_widths(80), selected=False),
+            20,
+        )
+
+        self.assertEqual(screen.lines[0].count("\u0336"), 19)
 
 
 class TuiSortingTest(unittest.TestCase):
@@ -133,6 +190,20 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
         self.assertEqual(browser.detail_scroll, 0)
+
+    def test_space_toggles_selected_job_expired_state(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.selected = 1
+        rows = [
+            {"id": 41, "is_expired": 0},
+            {"id": 42, "is_expired": 0},
+        ]
+
+        should_quit = browser._handle_list_key(ord(" "), rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.toggled_ids, [42])
 
     def test_left_arrow_returns_from_detail_to_list(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())

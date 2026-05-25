@@ -32,6 +32,7 @@ class JobRepositoryTest(unittest.TestCase):
                 "description",
                 "url",
                 "salary_range",
+                "is_expired",
                 "last_update",
             },
         )
@@ -57,8 +58,28 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(row["description"], "Build internal systems and tooling.")
         self.assertEqual(row["url"], "https://example.com/jobs/123")
         self.assertEqual(row["salary_range"], "$150k-$190k")
+        self.assertEqual(row["is_expired"], 0)
         self.assertRegex(row["last_update"], r"^\d{4}-\d{2}-\d{2}T")
         self.assertRegex(row["created_at"], r"^\d{4}-\d{2}-\d{2}T")
+
+    def test_toggle_expired_updates_local_flag(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Senior Software Engineer",
+                company_name="Example Systems",
+                description="Build internal systems and tooling.",
+                url="https://example.com/jobs/123",
+                salary_range="$150k-$190k",
+            )
+        )
+
+        first_value = self.repository.toggle_expired(job_id)
+        second_value = self.repository.toggle_expired(job_id)
+
+        self.assertTrue(first_value)
+        self.assertFalse(second_value)
+        self.assertEqual(self.repository.get(job_id)["is_expired"], 0)
 
     def test_same_url_updates_existing_job(self) -> None:
         first_id = self.repository.add_or_update(
@@ -164,6 +185,54 @@ class DatabaseConnectionTest(unittest.TestCase):
 
         self.assertIsInstance(row, sqlite3.Row)
         self.assertEqual(row["name"], "ok")
+
+    def test_initialize_database_migrates_existing_jobs_to_is_expired(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "careerops.sqlite3")
+            self.addCleanup(connection.close)
+            connection.executescript(
+                """
+                CREATE TABLE jobs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    publish_date TEXT,
+                    job_title TEXT NOT NULL,
+                    company_name TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    url TEXT UNIQUE,
+                    salary_range TEXT,
+                    last_update TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                INSERT INTO jobs (
+                    publish_date,
+                    job_title,
+                    company_name,
+                    description,
+                    url,
+                    salary_range,
+                    last_update,
+                    created_at
+                )
+                VALUES (
+                    '2026-05-20',
+                    'Senior Software Engineer',
+                    'Example Systems',
+                    'Build internal systems and tooling.',
+                    'https://example.com/jobs/123',
+                    '$150k-$190k',
+                    '2026-05-24T12:20:01-07:00',
+                    '2026-05-24T12:20:01-07:00'
+                );
+                PRAGMA user_version = 1;
+                """
+            )
+
+            initialize_database(connection)
+            row = connection.execute("SELECT is_expired FROM jobs").fetchone()
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+
+        self.assertEqual(row["is_expired"], 0)
+        self.assertEqual(version, 2)
 
 
 if __name__ == "__main__":

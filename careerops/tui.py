@@ -21,6 +21,7 @@ _SORT_COLUMN_BY_KEY = {key: column for key, column, _label in _SORT_COLUMNS}
 _SORT_LABEL_BY_COLUMN = {column: label for _key, column, label in _SORT_COLUMNS}
 _DETAIL_DESCRIPTION_START_ROW = 10
 _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
+_STRIKETHROUGH_MARK = "\u0336"
 
 
 def run(repository: JobRepository, initial_query: str = "") -> None:
@@ -71,7 +72,7 @@ def _format_list_row(
 ) -> str:
     publish_width, company_width, title_width, other_width = widths
     marker = ">" if selected else " "
-    return (
+    line = (
         f"{marker} "
         + _format_cell(_row_text(row, "publish_date"), publish_width)
         + _COLUMN_GAP
@@ -81,6 +82,16 @@ def _format_list_row(
         + _COLUMN_GAP
         + _format_cell(_format_other_information(row), other_width)
     )
+    if _row_is_expired(row):
+        return _strikethrough(line)
+    return line
+
+
+def _list_row_attrs(row: JobRow, selected: bool) -> int:
+    attrs = curses.A_REVERSE if selected else curses.A_NORMAL
+    if _row_is_expired(row):
+        attrs |= curses.A_DIM
+    return attrs
 
 
 def _format_other_information(row: JobRow) -> str:
@@ -94,10 +105,45 @@ def _format_other_information(row: JobRow) -> str:
 
 
 def _row_text(row: JobRow, key: str) -> str:
-    value = row[key]
+    value = _row_value(row, key)
     if value is None:
         return ""
     return str(value)
+
+
+def _row_value(row: JobRow, key: str) -> object:
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return None
+
+
+def _row_is_expired(row: JobRow) -> bool:
+    value = _row_value(row, "is_expired")
+    if isinstance(value, str):
+        return value.strip().casefold() in {"1", "true", "yes"}
+    return bool(value)
+
+
+def _strikethrough(value: str) -> str:
+    return "".join(character + _STRIKETHROUGH_MARK for character in value)
+
+
+def _clip_for_terminal(text: str, width: int) -> str:
+    visible_limit = max(0, width - 1)
+    result = []
+    visible_count = 0
+    index = 0
+    while index < len(text) and visible_count < visible_limit:
+        character = text[index]
+        result.append(character)
+        if character != _STRIKETHROUGH_MARK:
+            visible_count += 1
+        index += 1
+        while index < len(text) and text[index] == _STRIKETHROUGH_MARK:
+            result.append(text[index])
+            index += 1
+    return "".join(result)
 
 
 def _format_cell(value: object, width: int) -> str:
@@ -178,7 +224,7 @@ class _JobBrowser:
 
         for index, row in enumerate(rows[: max(0, height - 4)]):
             line = _format_list_row(row, widths, selected=index == self.selected)
-            attrs = curses.A_REVERSE if index == self.selected else curses.A_NORMAL
+            attrs = _list_row_attrs(row, selected=index == self.selected)
             self._add_line(index + 4, 0, line, width, attrs)
 
     def _draw_sort_selector(self) -> None:
@@ -225,6 +271,9 @@ class _JobBrowser:
             return False
         if key == ord("o"):
             self.mode = "sort"
+            return False
+        if key == ord(" ") and rows:
+            self.repository.toggle_expired(int(rows[self.selected]["id"]))
             return False
         if key in (curses.KEY_BACKSPACE, 127, 8):
             self.query = self.query[:-1]
@@ -287,7 +336,7 @@ class _JobBrowser:
     ) -> None:
         if y >= self.stdscr.getmaxyx()[0]:
             return
-        clipped = text[: max(0, width - 1)]
+        clipped = _clip_for_terminal(text, width)
         try:
             self.stdscr.addstr(y, x, clipped, attrs)
         except curses.error:
