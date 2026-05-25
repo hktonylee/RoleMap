@@ -4,6 +4,7 @@ import curses
 import os
 import shlex
 import subprocess
+import sys
 import textwrap
 from collections.abc import Callable, Sequence
 
@@ -457,7 +458,7 @@ class _JobBrowser:
     def _open_job_url(
         self,
         row: JobRow,
-        opener: Callable[[list[str]], object] | None = None,
+        opener: Callable[..., object] | None = None,
     ) -> None:
         url = _row_text(row, "url")
         if not url:
@@ -467,13 +468,19 @@ class _JobBrowser:
         if not browser:
             self.status_message = "BROWSER is not set."
             return
-        launch = subprocess.Popen if opener is None else opener
+        launch = subprocess.run if opener is None else opener
         try:
-            launch(shlex.split(browser) + [url], stdout=subprocess.DEVNULL)
+            result = launch(shlex.split(browser) + [url], capture_output=True, text=True)
         except OSError as exc:
             self.status_message = f"Open URL failed: {exc}"
         else:
-            self.status_message = f"Opened URL: {url}"
+            returncode = getattr(result, "returncode", 0)
+            if returncode:
+                sys.stdout.write(getattr(result, "stdout", "") or "")
+                sys.stderr.write(getattr(result, "stderr", "") or "")
+                self.status_message = f"Open URL failed: exit {returncode}"
+            else:
+                self.status_message = f"Opened URL: {url}"
 
     def _handle_template_key(
         self,

@@ -1,7 +1,8 @@
 import unittest
 import curses
+import io
 import os
-import subprocess
+from contextlib import redirect_stderr, redirect_stdout
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -507,7 +508,10 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "url": "https://example.com/jobs/staff",
                     "description": "Build systems.",
                 },
-                opener=lambda command, **_kwargs: launched_commands.append(command),
+                opener=lambda command, **_kwargs: (
+                    launched_commands.append(command)
+                    or SimpleNamespace(returncode=0, stdout="", stderr="")
+                ),
             )
 
         self.assertFalse(should_quit)
@@ -516,26 +520,62 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             [["firefox", "--new-tab", "https://example.com/jobs/staff"]],
         )
 
-    def test_opening_job_url_mutes_browser_stdout(self) -> None:
+    def test_opening_job_url_suppresses_browser_output_when_command_succeeds(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
         browser.mode = "detail"
         launched_kwargs = []
+        stdout = io.StringIO()
+        stderr = io.StringIO()
 
         with patch.dict(os.environ, {"BROWSER": "firefox --new-tab"}):
-            should_quit = browser._handle_detail_key(
-                curses.KEY_ENTER,
-                {
-                    "id": 42,
-                    "company_name": "Example Systems",
-                    "job_title": "Staff Engineer",
-                    "url": "https://example.com/jobs/staff",
-                    "description": "Build systems.",
-                },
-                opener=lambda _command, **kwargs: launched_kwargs.append(kwargs),
-            )
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                should_quit = browser._handle_detail_key(
+                    curses.KEY_ENTER,
+                    {
+                        "id": 42,
+                        "company_name": "Example Systems",
+                        "job_title": "Staff Engineer",
+                        "url": "https://example.com/jobs/staff",
+                        "description": "Build systems.",
+                    },
+                    opener=lambda _command, **kwargs: (
+                        launched_kwargs.append(kwargs)
+                        or SimpleNamespace(returncode=0, stdout="out", stderr="err")
+                    ),
+                )
 
         self.assertFalse(should_quit)
-        self.assertEqual(launched_kwargs, [{"stdout": subprocess.DEVNULL}])
+        self.assertEqual(launched_kwargs, [{"capture_output": True, "text": True}])
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_opening_job_url_prints_browser_output_when_command_fails(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with patch.dict(os.environ, {"BROWSER": "firefox --new-tab"}):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                should_quit = browser._handle_detail_key(
+                    curses.KEY_ENTER,
+                    {
+                        "id": 42,
+                        "company_name": "Example Systems",
+                        "job_title": "Staff Engineer",
+                        "url": "https://example.com/jobs/staff",
+                        "description": "Build systems.",
+                    },
+                    opener=lambda _command, **_kwargs: SimpleNamespace(
+                        returncode=1,
+                        stdout="browser stdout\n",
+                        stderr="browser stderr\n",
+                    ),
+                )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(stdout.getvalue(), "browser stdout\n")
+        self.assertEqual(stderr.getvalue(), "browser stderr\n")
 
     def test_u_key_does_not_open_job_url_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
@@ -552,7 +592,10 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "url": "https://example.com/jobs/staff",
                     "description": "Build systems.",
                 },
-                opener=lambda command, **_kwargs: launched_commands.append(command),
+                opener=lambda command, **_kwargs: (
+                    launched_commands.append(command)
+                    or SimpleNamespace(returncode=0, stdout="", stderr="")
+                ),
             )
 
         self.assertFalse(should_quit)
