@@ -208,7 +208,7 @@ def _handle_backfill_salaries(args: argparse.Namespace, repository: JobRepositor
     updated = 0
     for row in repository.list():
         url = str(row["url"] or "")
-        if getattr(args, "source", "indeed") == "indeed" and not _is_indeed_url(url):
+        if getattr(args, "source", "indeed") == "indeed" and not _is_indeed_source(row):
             continue
         if row["salary_range"] and not args.overwrite:
             continue
@@ -367,3 +367,10 @@ def _looks_like_job_posting_url(value: str) -> bool:
 
 def _is_indeed_url(value: str) -> bool:
     return "indeed." in urlparse(value).netloc.lower()
+
+
+def _is_indeed_source(row: sqlite3.Row) -> bool:
+    if _is_indeed_url(str(row["url"] or "")):
+        return True
+    description = str(row["description"] or "").lstrip().lower()
+    return description.startswith("source: indeed")

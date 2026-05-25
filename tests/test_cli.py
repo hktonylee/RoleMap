@@ -313,6 +313,50 @@ class BackfillSalariesCliTest(unittest.TestCase):
             "$125,000-$160,000 CAD",
         )
 
+    def test_backfill_salaries_treats_indeed_alert_description_as_indeed_source(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-18",
+                job_title="Software Engineer (Backend)",
+                company_name="Kabam",
+                description="Source: Indeed job alert email. Email subject: Kabam is hiring.",
+                url="https://www.glassdoor.ca/partner/jobListing.htm?jobListingId=1010136759800",
+                salary_range="",
+            )
+        )
+        args = argparse.Namespace(
+            dry_run=False,
+            limit=0,
+            overwrite=False,
+            fetch=True,
+            source="indeed",
+        )
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with (
+            patch(
+                "careerops.cli.fetch_source_job",
+                return_value=SourceJob(
+                    description="Full source job description.",
+                    salary_range="CA$95,000-CA$120,000 a year",
+                ),
+            ) as fetch,
+            patch.object(sys, "stdout", stdout),
+            patch.object(sys, "stderr", stderr),
+        ):
+            exit_code = _handle_backfill_salaries(args, self.repository)
+
+        self.assertEqual(exit_code, 0)
+        fetch.assert_called_once_with(
+            "https://www.glassdoor.ca/partner/jobListing.htm?jobListingId=1010136759800"
+        )
+        self.assertEqual(stdout.getvalue().strip(), str(job_id))
+        self.assertEqual(
+            self.repository.get(job_id)["salary_range"],
+            "CA$95,000-CA$120,000 a year",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
