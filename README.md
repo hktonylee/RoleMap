@@ -1,12 +1,12 @@
-# CareerOps
+# RoleMap
 
-CareerOps is a local-first career operations toolkit for collecting, storing, and browsing job descriptions. It keeps job records in SQLite so local scripts, Codex workflows, a terminal UI, and future resume-generation tools can work from the same source of truth.
+RoleMap is a local-first career operations toolkit for collecting, storing, and browsing job descriptions. It keeps job records in SQLite so local scripts, Codex workflows, a terminal UI, and future resume-generation tools can work from the same source of truth.
 
 The repository currently focuses on one durable domain object: `jobs`. Each job record stores the publish date, title, company, full source-backed description, canonical posting URL, salary range, expired flag, local update timestamp, and creation timestamp.
 
 ## What This Repository Is Used For
 
-- Keep a private SQLite database of job descriptions under `data/careerops.sqlite3` by default.
+- Keep a private SQLite database of job descriptions under `data/rolemap.sqlite3` by default.
 - Import jobs from JSON files, one-off CLI arguments, or agent-produced job-description extracts.
 - Update existing jobs by URL instead of creating duplicate rows.
 - Search and inspect saved jobs from scripts or a curses-based terminal UI.
@@ -22,27 +22,27 @@ Run commands from the repository root.
 Use the module directly:
 
 ```bash
-python -m careerops --help
+python -m rolemap --help
 ```
 
 Or install the console script in editable mode:
 
 ```bash
 python -m pip install -e .
-careerops --help
+rolemap --help
 ```
 
-By default, CareerOps writes to:
+By default, RoleMap writes to:
 
 ```text
-data/careerops.sqlite3
+data/rolemap.sqlite3
 ```
 
-Use another database with either `--db` or `CAREEROPS_DB`:
+Use another database with either `--db` or `ROLEMAP_DB`:
 
 ```bash
-python -m careerops --db /tmp/careerops.sqlite3 init
-CAREEROPS_DB=/tmp/careerops.sqlite3 python -m careerops list-jobs
+python -m rolemap --db /tmp/rolemap.sqlite3 init
+ROLEMAP_DB=/tmp/rolemap.sqlite3 python -m rolemap list-jobs
 ```
 
 ## Quick Start
@@ -50,13 +50,13 @@ CAREEROPS_DB=/tmp/careerops.sqlite3 python -m careerops list-jobs
 Initialize the database:
 
 ```bash
-python -m careerops init
+python -m rolemap init
 ```
 
 Add a job from command-line fields:
 
 ```bash
-python -m careerops add-job \
+python -m rolemap add-job \
   --publish-date 2026-05-20 \
   --title "Senior Software Engineer" \
   --company "Example Systems" \
@@ -68,7 +68,7 @@ python -m careerops add-job \
 Add a job from a description file:
 
 ```bash
-python -m careerops add-job \
+python -m rolemap add-job \
   --title "Staff Platform Engineer" \
   --company "Example Systems" \
   --description-file /tmp/job-description.txt \
@@ -78,19 +78,19 @@ python -m careerops add-job \
 List saved jobs:
 
 ```bash
-python -m careerops list-jobs
+python -m rolemap list-jobs
 ```
 
 Show one job in detail:
 
 ```bash
-python -m careerops show-job 1
+python -m rolemap show-job 1
 ```
 
 Open the terminal UI:
 
 ```bash
-python -m careerops tui
+python -m rolemap tui
 ```
 
 `list-jobs` also opens the interactive list when stdin and stdout are both terminals. When output is redirected or piped, it prints tab-separated rows with `id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`, `is_expired`, and `last_update`.
@@ -113,7 +113,7 @@ python -m careerops tui
 Import one file:
 
 ```bash
-python -m careerops add-job --json job.json
+python -m rolemap add-job --json job.json
 ```
 
 Import several jobs from one JSON array:
@@ -139,7 +139,7 @@ Import several jobs from one JSON array:
 ]
 ```
 
-CareerOps treats `job_title`, `company_name`, and `description` as required fields. `publish_date`, `url`, and `salary_range` can be empty strings when unknown. `is_expired` is optional and defaults to false. Do not provide `last_update`; CareerOps sets it locally when a row is inserted or updated.
+RoleMap treats `job_title`, `company_name`, and `description` as required fields. `publish_date`, `url`, and `salary_range` can be empty strings when unknown. `is_expired` is optional and defaults to false. Do not provide `last_update`; RoleMap sets it locally when a row is inserted or updated.
 
 If a URL is present, importing the same URL again updates the existing row and refreshes `last_update`.
 
@@ -148,13 +148,13 @@ If a URL is present, importing the same URL again updates the existing row and r
 Search from the CLI:
 
 ```bash
-python -m careerops list-jobs --query "platform"
+python -m rolemap list-jobs --query "platform"
 ```
 
 Pipe tab-separated rows into another command:
 
 ```bash
-python -m careerops list-jobs --query "remote" > /tmp/jobs.tsv
+python -m rolemap list-jobs --query "remote" > /tmp/jobs.tsv
 ```
 
 In the terminal UI:
@@ -176,7 +176,7 @@ templates/
 resume_templates/
 ```
 
-From the TUI job detail view, press `G`, choose a template, and press Enter. CareerOps creates a job-specific directory under:
+From the TUI job detail view, press `G`, choose a template, and press Enter. RoleMap creates a job-specific directory under:
 
 ```text
 generated/resumes/
@@ -189,17 +189,17 @@ Each run contains:
 - `tailoring-prompt.md`
 - `tailored-resume.html`, written by the generator
 
-After preparing those files, CareerOps temporarily leaves the job browser and opens the Codex interactive CLI in the terminal. When Codex exits, CareerOps redraws the job detail view with the path to `tailored-resume.html`.
+After preparing those files, RoleMap temporarily leaves the job browser and opens the Codex interactive CLI in the terminal. When Codex exits, RoleMap redraws the job detail view with the path to `tailored-resume.html`.
 
-To run a different visible generator command, set `CAREEROPS_RESUME_GENERATOR`. CareerOps runs the command from the generated output directory and provides these environment variables:
+To run a different visible generator command, set `ROLEMAP_RESUME_GENERATOR`. RoleMap runs the command from the generated output directory and provides these environment variables:
 
 ```text
-CAREEROPS_RESUME_TEMPLATE
-CAREEROPS_RESUME_TEMPLATE_COPY
-CAREEROPS_RESUME_PROMPT
-CAREEROPS_RESUME_JOB_DESCRIPTION
-CAREEROPS_RESUME_OUTPUT_DIR
-CAREEROPS_RESUME_RESULT_HTML
+ROLEMAP_RESUME_TEMPLATE
+ROLEMAP_RESUME_TEMPLATE_COPY
+ROLEMAP_RESUME_PROMPT
+ROLEMAP_RESUME_JOB_DESCRIPTION
+ROLEMAP_RESUME_OUTPUT_DIR
+ROLEMAP_RESUME_RESULT_HTML
 ```
 
 ## Maintaining Source-Backed Descriptions
@@ -209,26 +209,26 @@ Keep `description` source-backed: store the original job posting text instead of
 Preview backfills for older generated or email-summary descriptions:
 
 ```bash
-python -m careerops backfill-descriptions --dry-run
+python -m rolemap backfill-descriptions --dry-run
 ```
 
 Apply the backfill:
 
 ```bash
-python -m careerops backfill-descriptions
+python -m rolemap backfill-descriptions
 ```
 
 Overwrite existing full descriptions when you intentionally want to refetch them from source URLs:
 
 ```bash
-python -m careerops backfill-descriptions --overwrite
+python -m rolemap backfill-descriptions --overwrite
 ```
 
 Clean already-stored source text that contains known site chrome:
 
 ```bash
-python -m careerops clean-descriptions --dry-run
-python -m careerops clean-descriptions
+python -m rolemap clean-descriptions --dry-run
+python -m rolemap clean-descriptions
 ```
 
 The current cleaner handles known LinkedIn search, sign-in, pay-range widget, and footer text while preserving the job/company/role sections.
@@ -236,11 +236,11 @@ The current cleaner handles known LinkedIn search, sign-in, pay-range widget, an
 ## Repository Layout
 
 ```text
-careerops/db.py          SQLite connection and schema setup
-careerops/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
-careerops/job_sources.py Job-posting fetch, extraction, and cleanup helpers
-careerops/cli.py         Command-line interface
-careerops/tui.py         curses-based job browser
+rolemap/db.py          SQLite connection and schema setup
+rolemap/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
+rolemap/job_sources.py Job-posting fetch, extraction, and cleanup helpers
+rolemap/cli.py         Command-line interface
+rolemap/tui.py         curses-based job browser
 codex-skills/            Project-local Codex workflows
 docs/specs/              Design notes
 tests/                   Unit tests

@@ -10,13 +10,13 @@ import shlex
 import shutil
 import subprocess
 
-from careerops.jobs import JobRow
+from rolemap.jobs import JobRow
 
 
 TEMPLATE_DIRECTORIES = ("resume_templates", "templates")
 DEFAULT_OUTPUT_ROOT = Path("generated") / "resumes"
 DEFAULT_RESULT_FILENAME = "tailored-resume.html"
-GENERATOR_ENV_VAR = "CAREEROPS_RESUME_GENERATOR"
+GENERATOR_ENV_VAR = "ROLEMAP_RESUME_GENERATOR"
 
 
 @dataclass(frozen=True)
@@ -201,12 +201,12 @@ def _result_environment(
     result_html_path: Path,
 ) -> dict[str, str]:
     return {
-        "CAREEROPS_RESUME_TEMPLATE": str(source_template),
-        "CAREEROPS_RESUME_TEMPLATE_COPY": str(template_copy_path),
-        "CAREEROPS_RESUME_PROMPT": str(prompt_path),
-        "CAREEROPS_RESUME_JOB_DESCRIPTION": str(job_description_path),
-        "CAREEROPS_RESUME_OUTPUT_DIR": str(output_dir),
-        "CAREEROPS_RESUME_RESULT_HTML": str(result_html_path),
+        "ROLEMAP_RESUME_TEMPLATE": str(source_template),
+        "ROLEMAP_RESUME_TEMPLATE_COPY": str(template_copy_path),
+        "ROLEMAP_RESUME_PROMPT": str(prompt_path),
+        "ROLEMAP_RESUME_JOB_DESCRIPTION": str(job_description_path),
+        "ROLEMAP_RESUME_OUTPUT_DIR": str(output_dir),
+        "ROLEMAP_RESUME_RESULT_HTML": str(result_html_path),
     }
 
 

@@ -9,16 +9,16 @@ import sys
 from typing import Sequence
 from urllib.parse import urlparse
 
-from careerops.db import connect, initialize_database
-from careerops.job_sources import (
+from rolemap.db import connect, initialize_database
+from rolemap.job_sources import (
     clean_source_description,
     extract_salary_range,
     fetch_source_job,
 )
-from careerops.jobs import JobInput, JobRepository
+from rolemap.jobs import JobInput, JobRepository
 
 
-DEFAULT_DB_PATH = Path("data") / "careerops.sqlite3"
+DEFAULT_DB_PATH = Path("data") / "rolemap.sqlite3"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -35,12 +35,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         finally:
             connection.close()
     except (ValueError, OSError, sqlite3.Error, json.JSONDecodeError) as exc:
-        print(f"careerops: {exc}", file=sys.stderr)
+        print(f"rolemap: {exc}", file=sys.stderr)
         return 1
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="careerops")
+    parser = argparse.ArgumentParser(prog="rolemap")
     parser.add_argument("--db", help="SQLite database path")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -122,7 +122,7 @@ def _handle_add_job(args: argparse.Namespace, repository: JobRepository) -> int:
 
 def _handle_list_jobs(args: argparse.Namespace, repository: JobRepository) -> int:
     if _should_use_interactive_list():
-        from careerops.tui import run
+        from rolemap.tui import run
 
         run(repository, initial_query=args.query)
         return 0
@@ -277,14 +277,14 @@ def _clean_descriptions(args: argparse.Namespace, repository: JobRepository) -> 
 
 def _handle_tui(args: argparse.Namespace, repository: JobRepository) -> int:
     del args
-    from careerops.tui import run
+    from rolemap.tui import run
 
     run(repository)
     return 0
 
 
 def _database_path(value: str | None) -> Path:
-    return Path(value or os.environ.get("CAREEROPS_DB") or DEFAULT_DB_PATH)
+    return Path(value or os.environ.get("ROLEMAP_DB") or DEFAULT_DB_PATH)
 
 
 def _load_jobs(args: argparse.Namespace) -> list[JobInput]:

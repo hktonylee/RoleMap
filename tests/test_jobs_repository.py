@@ -3,15 +3,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from careerops.db import connect, initialize_database
-from careerops.jobs import JobInput, JobRepository
+from rolemap.db import connect, initialize_database
+from rolemap.jobs import JobInput, JobRepository
 
 
 class JobRepositoryTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
-        self.db_path = Path(self.temp_dir.name) / "careerops.sqlite3"
+        self.db_path = Path(self.temp_dir.name) / "rolemap.sqlite3"
         self.connection = connect(self.db_path)
         self.addCleanup(self.connection.close)
         initialize_database(self.connection)
@@ -338,7 +338,7 @@ class JobRepositoryTest(unittest.TestCase):
 class DatabaseConnectionTest(unittest.TestCase):
     def test_connect_returns_sqlite_rows_by_name(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            connection = connect(Path(temp_dir) / "careerops.sqlite3")
+            connection = connect(Path(temp_dir) / "rolemap.sqlite3")
             self.addCleanup(connection.close)
 
             connection.execute("CREATE TABLE sample (name TEXT)")
@@ -350,7 +350,7 @@ class DatabaseConnectionTest(unittest.TestCase):
 
     def test_initialize_database_migrates_existing_jobs_to_is_expired(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            connection = connect(Path(temp_dir) / "careerops.sqlite3")
+            connection = connect(Path(temp_dir) / "rolemap.sqlite3")
             self.addCleanup(connection.close)
             connection.executescript(
                 """

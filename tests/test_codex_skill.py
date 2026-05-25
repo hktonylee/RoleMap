@@ -14,8 +14,8 @@ class CodexSkillTest(unittest.TestCase):
         body = skill_path.read_text(encoding="utf-8")
 
         self.assertIn("name: add-job-description", body)
-        self.assertNotIn("careerops-add-job-description", body)
-        self.assertIn("careerops add-job", body)
+        self.assertNotIn("rolemap-add-job-description", body)
+        self.assertIn("rolemap add-job", body)
         self.assertIn("job_title", body)
         self.assertIn("company_name", body)
         self.assertIn("description", body)

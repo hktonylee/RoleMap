@@ -1,8 +1,8 @@
-# SQLite CareerOps Design
+# SQLite RoleMap Design
 
 ## Goal
 
-Build a local, SQLite-centered CareerOps system for storing and browsing job descriptions. The first durable domain object is `jobs`; later modules should be able to generate resumes from the same job records, and a future web UI should be able to reuse the database and service layer without rewriting core logic.
+Build a local, SQLite-centered RoleMap system for storing and browsing job descriptions. The first durable domain object is `jobs`; later modules should be able to generate resumes from the same job records, and a future web UI should be able to reuse the database and service layer without rewriting core logic.
 
 ## Requirements
 
@@ -14,14 +14,14 @@ Build a local, SQLite-centered CareerOps system for storing and browsing job des
 
 ## Architecture
 
-- `careerops.db`: owns SQLite connection setup, schema creation, and migrations.
-- `careerops.jobs`: owns the `JobInput` data shape, validation, upsert/add behavior, and read queries.
-- `careerops.job_sources`: fetches job posting URLs and extracts source-backed job description text, preferring structured `JobPosting` data when available.
-- `careerops.cli`: exposes scriptable commands for importing jobs, listing jobs, showing details, and launching the TUI.
-- `careerops.tui`: owns curses-based interactive browsing only; it calls the repository instead of touching SQL directly.
+- `rolemap.db`: owns SQLite connection setup, schema creation, and migrations.
+- `rolemap.jobs`: owns the `JobInput` data shape, validation, upsert/add behavior, and read queries.
+- `rolemap.job_sources`: fetches job posting URLs and extracts source-backed job description text, preferring structured `JobPosting` data when available.
+- `rolemap.cli`: exposes scriptable commands for importing jobs, listing jobs, showing details, and launching the TUI.
+- `rolemap.tui`: owns curses-based interactive browsing only; it calls the repository instead of touching SQL directly.
 - `codex-skills/add-job-description/SKILL.md`: project skill for Codex agents adding job descriptions.
 
-This keeps storage, domain rules, and UI separate. Resume generation can later depend on `careerops.jobs` and add its own module without coupling to curses or CLI parsing. A web UI can do the same.
+This keeps storage, domain rules, and UI separate. Resume generation can later depend on `rolemap.jobs` and add its own module without coupling to curses or CLI parsing. A web UI can do the same.
 
 ## Database
 
@@ -44,14 +44,14 @@ The `jobs` table uses a stable integer primary key and stores source data as tex
 
 CLI commands:
 
-- `careerops init`
-- `careerops add-job --json FILE`
-- `careerops add-job --title ... --company ... --description ...`
-- `careerops backfill-descriptions [--dry-run] [--overwrite]`
-- `careerops clean-descriptions [--dry-run]`
-- `careerops list-jobs`
-- `careerops show-job ID`
-- `careerops tui`
+- `rolemap init`
+- `rolemap add-job --json FILE`
+- `rolemap add-job --title ... --company ... --description ...`
+- `rolemap backfill-descriptions [--dry-run] [--overwrite]`
+- `rolemap clean-descriptions [--dry-run]`
+- `rolemap list-jobs`
+- `rolemap show-job ID`
+- `rolemap tui`
 
 The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed, struck through, and sorted after active rows. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
 

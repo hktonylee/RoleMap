@@ -1,11 +1,11 @@
 ---
 name: add-job-description
-description: Add a job description to the local CareerOps SQLite database from pasted text, email extracts, company pages, or other JD sources.
+description: Add a job description to the local RoleMap SQLite database from pasted text, email extracts, company pages, or other JD sources.
 ---
 
-# Add Job Description To CareerOps
+# Add Job Description To RoleMap
 
-Use this skill when the user asks Codex to add a job description to CareerOps. The source can be a pasted JD, email content, a company site extract, or another upstream collector.
+Use this skill when the user asks Codex to add a job description to RoleMap. The source can be a pasted JD, email content, a company site extract, or another upstream collector.
 
 Do not generate, summarize, rewrite, or infer the `description` yourself. The `description` field must be source-backed job-posting text. When a posting URL is available, fetch the source website and use the job description text from that page; prefer structured `JobPosting` content when present, then visible page text. Only use email snippets as a temporary placeholder when the source posting cannot be reached.
 
@@ -20,7 +20,7 @@ Capture these fields for the `jobs` table:
 - `url`
 - `salary_range`
 
-Do not provide `last_update`; CareerOps sets `last_update` locally when `careerops add-job` inserts or updates the row.
+Do not provide `last_update`; RoleMap sets `last_update` locally when `rolemap add-job` inserts or updates the row.
 
 ## Workflow
 
@@ -32,13 +32,13 @@ Do not provide `last_update`; CareerOps sets `last_update` locally when `careero
 6. Run:
 
 ```bash
-python -m careerops add-job --json /path/to/job.json
+python -m rolemap add-job --json /path/to/job.json
 ```
 
 or, if installed as a console script:
 
 ```bash
-careerops add-job --json /path/to/job.json
+rolemap add-job --json /path/to/job.json
 ```
 
 7. Report the returned job id and whether the source URL suggests this was an update to an existing job.
@@ -62,7 +62,7 @@ careerops add-job --json /path/to/job.json
 - Prefer the canonical company posting URL over aggregator URLs.
 - For email sources, extract the job posting link from the email body; `url` must be the job posting URL, not a Gmail thread URL.
 - For email sources, follow the posting link and backfill `description` from the source website before treating the row as complete.
-- To replace older generated/email-summary descriptions, run `python -m careerops backfill-descriptions` against the target database. Use `--dry-run` first when you want to preview which source URLs can be fetched.
-- If fetched source text includes site chrome such as `Skip to main content`, `Expand search`, sign-in prompts, or footers, run `python -m careerops clean-descriptions` to remove known non-JD text from stored descriptions.
+- To replace older generated/email-summary descriptions, run `python -m rolemap backfill-descriptions` against the target database. Use `--dry-run` first when you want to preview which source URLs can be fetched.
+- If fetched source text includes site chrome such as `Skip to main content`, `Expand search`, sign-in prompts, or footers, run `python -m rolemap clean-descriptions` to remove known non-JD text from stored descriptions.
 - If the job text includes multiple roles, ask which one to add unless the user already named the role.
-- If the same `url` is imported again, CareerOps updates that row and refreshes `last_update`.
+- If the same `url` is imported again, RoleMap updates that row and refreshes `last_update`.

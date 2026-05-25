@@ -1,4 +1,4 @@
-from careerops.cli import main
+from rolemap.cli import main
 
 
 if __name__ == "__main__":

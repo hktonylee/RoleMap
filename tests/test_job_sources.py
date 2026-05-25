@@ -1,6 +1,6 @@
 import unittest
 
-from careerops.job_sources import (
+from rolemap.job_sources import (
     clean_source_description,
     extract_salary_range,
     extract_source_description,

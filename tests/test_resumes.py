@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from careerops.resumes import discover_templates, generate_resume, run_resume_generator
+from rolemap.resumes import discover_templates, generate_resume, run_resume_generator
 
 
 class ResumeTemplateDiscoveryTest(unittest.TestCase):
@@ -77,11 +77,11 @@ class ResumeGenerationTest(unittest.TestCase):
                 "from pathlib import Path; "
                 "import os; "
                 "Path(os.environ['MARKER']).write_text("
-                "os.environ['CAREEROPS_RESUME_PROMPT'], encoding='utf-8'"
+                "os.environ['ROLEMAP_RESUME_PROMPT'], encoding='utf-8'"
                 ")"
             )
             environ = {
-                "CAREEROPS_RESUME_GENERATOR": f"{sys.executable} -c {script!r}",
+                "ROLEMAP_RESUME_GENERATOR": f"{sys.executable} -c {script!r}",
                 "MARKER": str(marker),
                 **os.environ,
             }
@@ -121,7 +121,7 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertEqual(command[1], "--cd")
         self.assertEqual(command[2], str(result.output_dir))
         self.assertIn(str(result.result_html_path), command[3])
-        self.assertEqual(kwargs["env"]["CAREEROPS_RESUME_RESULT_HTML"], str(result.result_html_path))
+        self.assertEqual(kwargs["env"]["ROLEMAP_RESUME_RESULT_HTML"], str(result.result_html_path))
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ import subprocess
 import textwrap
 from collections.abc import Callable, Sequence
 
-from careerops.jobs import JobRepository, JobRow
-from careerops.resumes import (
+from rolemap.jobs import JobRepository, JobRow
+from rolemap.resumes import (
     ResumeTemplate,
     discover_templates,
     generate_resume,
