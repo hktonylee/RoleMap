@@ -29,6 +29,12 @@ class RecordingScreen(FakeScreen):
         self.lines: dict[int, str] = {}
         self.calls: list[SimpleNamespace] = []
 
+    def erase(self) -> None:
+        self.lines = {}
+
+    def refresh(self) -> None:
+        pass
+
     def addstr(self, y: int, x: int, text: str, attrs: int = curses.A_NORMAL) -> None:
         self.calls.append(SimpleNamespace(y=y, x=x, text=text, attrs=attrs))
         existing = self.lines.get(y, "")
@@ -49,6 +55,36 @@ class ToggleRepository:
     def toggle_expired(self, job_id: int) -> bool:
         self.toggled_ids.append(job_id)
         return True
+
+
+class ToggleSearchRepository:
+    def __init__(self) -> None:
+        self.toggled_ids: list[int] = []
+
+    def search(self, query: str) -> list[dict[str, object]]:
+        return [
+            {"id": 1, "company_name": "Alpha", "is_expired": 0},
+            {
+                "id": 2,
+                "company_name": "Beta",
+                "is_expired": int(2 in self.toggled_ids),
+            },
+            {"id": 3, "company_name": "Gamma", "is_expired": 0},
+        ]
+
+    def toggle_expired(self, job_id: int) -> bool:
+        self.toggled_ids.append(job_id)
+        return True
+
+
+class KeyScreen(RecordingScreen):
+    def __init__(self, keys: list[int]) -> None:
+        super().__init__()
+        self.keys = keys
+        self.drawn_lists: list[list[int]] = []
+
+    def getch(self) -> int:
+        return self.keys.pop(0)
 
 
 def _row(index: int) -> dict[str, object]:
@@ -369,6 +405,23 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertFalse(should_quit)
         self.assertEqual(repository.toggled_ids, [42])
+
+    def test_toggle_keeps_list_order_until_leaving_list(self) -> None:
+        repository = ToggleSearchRepository()
+        screen = KeyScreen([curses.KEY_DOWN, ord(" "), ord("q")])
+        browser = _JobBrowser(screen, repository=repository)
+        original_draw_list = browser._draw_list
+
+        def record_draw(rows: list[dict[str, object]]) -> None:
+            screen.drawn_lists.append([int(row["id"]) for row in rows])
+            original_draw_list(rows)
+
+        browser._draw_list = record_draw
+
+        with patch("curses.curs_set"):
+            browser.run()
+
+        self.assertEqual(screen.drawn_lists, [[1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
     def test_left_arrow_returns_from_detail_to_list(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())

@@ -185,7 +185,7 @@ def _row_text(row: JobRow, key: str) -> str:
 def _row_value(row: JobRow, key: str) -> object:
     try:
         return row[key]
-    except (IndexError, KeyError):
+    except (IndexError, KeyError, TypeError):
         return None
 
 
@@ -194,6 +194,14 @@ def _row_is_expired(row: JobRow) -> bool:
     if isinstance(value, str):
         return value.strip().casefold() in {"1", "true", "yes"}
     return bool(value)
+
+
+def _copy_row_with_expired_state(row: JobRow, is_expired: bool) -> dict[str, object]:
+    keys_method = getattr(row, "keys", None)
+    keys = keys_method() if callable(keys_method) else ()
+    values = {str(key): row[str(key)] for key in keys}
+    values["is_expired"] = int(is_expired)
+    return values
 
 
 def _strikethrough(value: str) -> str:
@@ -255,17 +263,16 @@ class _JobBrowser:
         self.template_templates: list[ResumeTemplate] = []
         self.template_selected = 0
         self.template_job: JobRow | None = None
+        self.list_rows: list[JobRow] | None = None
+        self.selected_row_id: object | None = None
 
     def run(self) -> None:
         curses.curs_set(0)
         _init_shortcut_key_color()
         self.stdscr.keypad(True)
         while True:
-            rows = _sort_list_rows(
-                self.repository.search(self.query),
-                self.sort_column,
-                reverse=self.sort_reverse,
-            )
+            rows = self._current_rows()
+            self._restore_selected_row(rows)
             if self.selected >= len(rows):
                 self.selected = max(0, len(rows) - 1)
 
@@ -280,6 +287,38 @@ class _JobBrowser:
                 return
             if self.mode == "template" and self._handle_template_key(key):
                 return
+
+    def _current_rows(self) -> list[JobRow]:
+        if self.mode == "list" and self.list_rows is not None:
+            return self.list_rows
+        rows = _sort_list_rows(
+            self.repository.search(self.query),
+            self.sort_column,
+            reverse=self.sort_reverse,
+        )
+        if self.mode == "list":
+            self.list_rows = rows
+        return rows
+
+    def _restore_selected_row(self, rows: Sequence[JobRow]) -> None:
+        if self.selected_row_id is None:
+            return
+        for index, row in enumerate(rows):
+            if _row_value(row, "id") == self.selected_row_id:
+                self.selected = index
+                break
+        self.selected_row_id = None
+
+    def _clear_list_rows(self) -> None:
+        self.list_rows = None
+
+    def _replace_cached_expired_state(self, index: int, is_expired: bool) -> None:
+        if self.list_rows is None or index >= len(self.list_rows):
+            return
+        self.list_rows[index] = _copy_row_with_expired_state(
+            self.list_rows[index],
+            is_expired,
+        )
 
     def _draw(self, rows: Sequence[JobRow]) -> None:
         self.stdscr.erase()
@@ -389,8 +428,10 @@ class _JobBrowser:
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
         if self.search_active and self._handle_search_key(key):
+            self._clear_list_rows()
             return False
         if key in (ord("q"), 27):
+            self._clear_list_rows()
             return True
         if key in (curses.KEY_DOWN, 14):
             self.selected = min(self.selected + 1, max(0, len(rows) - 1))
@@ -412,6 +453,8 @@ class _JobBrowser:
             self.selected = max(0, len(rows) - 1)
             return False
         if key in (curses.KEY_ENTER, curses.KEY_RIGHT, 10, 13) and rows:
+            self.selected_row_id = _row_value(rows[self.selected], "id")
+            self._clear_list_rows()
             self.mode = "detail"
             self.detail_scroll = 0
             return False
@@ -419,7 +462,8 @@ class _JobBrowser:
             self.mode = "sort"
             return False
         if key == ord(" ") and rows:
-            self.repository.toggle_expired(int(rows[self.selected]["id"]))
+            is_expired = self.repository.toggle_expired(int(rows[self.selected]["id"]))
+            self._replace_cached_expired_state(self.selected, is_expired)
             return False
         if key == ord("/"):
             self.search_active = True
@@ -452,6 +496,7 @@ class _JobBrowser:
         self.sort_reverse = typed.isupper()
         self.selected = 0
         self.mode = "list"
+        self._clear_list_rows()
         return False
 
     def _handle_detail_key(
