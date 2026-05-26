@@ -2,6 +2,7 @@ import unittest
 import curses
 import io
 import os
+import subprocess
 from contextlib import redirect_stderr, redirect_stdout
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -910,7 +911,10 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 )
 
         self.assertFalse(should_quit)
-        self.assertEqual(launched_kwargs, [{"capture_output": True, "text": True}])
+        self.assertEqual(
+            launched_kwargs,
+            [{"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "text": True}],
+        )
         self.assertEqual(stdout.getvalue(), "")
         self.assertEqual(stderr.getvalue(), "")
 
@@ -941,6 +945,46 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(stdout.getvalue(), "browser stdout\n")
         self.assertEqual(stderr.getvalue(), "browser stderr\n")
+
+    def test_opening_job_url_does_not_wait_for_long_running_browser(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+
+        class LongRunningBrowser:
+            returncode = None
+
+            def __init__(self) -> None:
+                self.wait_timeout = None
+
+            def communicate(self, timeout=None):
+                self.wait_timeout = timeout
+                raise subprocess.TimeoutExpired(["firefox"], timeout)
+
+        process = LongRunningBrowser()
+        launched_processes = []
+
+        with patch.dict(os.environ, {"BROWSER": "firefox --new-tab"}):
+            should_quit = browser._handle_detail_key(
+                curses.KEY_ENTER,
+                {
+                    "id": 42,
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "url": "https://example.com/jobs/staff",
+                    "job_description": "Build systems.",
+                },
+                opener=lambda _command, **_kwargs: (
+                    launched_processes.append(process) or process
+                ),
+            )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(launched_processes, [process])
+        self.assertIsNotNone(process.wait_timeout)
+        self.assertEqual(
+            browser.status_message,
+            "Opened URL: https://example.com/jobs/staff",
+        )
 
     def test_u_key_does_not_open_job_url_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())

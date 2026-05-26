@@ -35,6 +35,7 @@ _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
 _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
+_BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
 _SHORTCUT_HELP_KEYS = (
     "Backspace",
@@ -722,16 +723,34 @@ class _JobBrowser:
         if not browser:
             self.status_message = "BROWSER is not set."
             return
-        launch = subprocess.run if opener is None else opener
+        launch = subprocess.Popen if opener is None else opener
         try:
-            result = launch(shlex.split(browser) + [url], capture_output=True, text=True)
+            result = launch(
+                shlex.split(browser) + [url],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
         except OSError as exc:
             self.status_message = f"Open URL failed: {exc}"
         else:
+            if hasattr(result, "communicate"):
+                try:
+                    stdout, stderr = result.communicate(timeout=_BROWSER_OPEN_WAIT_SECONDS)
+                except subprocess.TimeoutExpired:
+                    for stream_name in ("stdout", "stderr"):
+                        stream = getattr(result, stream_name, None)
+                        if stream is not None:
+                            stream.close()
+                    self.status_message = f"Opened URL: {url}"
+                    return
+            else:
+                stdout = getattr(result, "stdout", "") or ""
+                stderr = getattr(result, "stderr", "") or ""
             returncode = getattr(result, "returncode", 0)
             if returncode:
-                sys.stdout.write(getattr(result, "stdout", "") or "")
-                sys.stderr.write(getattr(result, "stderr", "") or "")
+                sys.stdout.write(stdout or "")
+                sys.stderr.write(stderr or "")
                 self.status_message = f"Open URL failed: exit {returncode}"
             else:
                 self.status_message = f"Opened URL: {url}"
