@@ -28,6 +28,34 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("source website", body)
         self.assertIn("backfill-descriptions", body)
 
+    def test_list_jobs_skill_exists_and_documents_workflow(self) -> None:
+        skill_path = (
+            Path(__file__).resolve().parents[1]
+            / "codex-skills"
+            / "list-jobs"
+            / "SKILL.md"
+        )
+
+        body = skill_path.read_text(encoding="utf-8")
+
+        self.assertIn("name: list-jobs", body)
+        self.assertIn("rolemap list-jobs", body)
+        self.assertIn("python -m role_map list-jobs", body)
+        self.assertIn("--query", body)
+        self.assertIn("--db", body)
+        self.assertIn("ROLEMAP_DB", body)
+        self.assertIn("noninteractive", body)
+        self.assertIn("tab-separated", body)
+        self.assertIn("id", body)
+        self.assertIn("publish_date", body)
+        self.assertIn("company_name", body)
+        self.assertIn("job_title", body)
+        self.assertIn("salary_range", body)
+        self.assertIn("url", body)
+        self.assertIn("is_expired", body)
+        self.assertIn("last_update", body)
+        self.assertIn("read-only", body)
+
 
 if __name__ == "__main__":
     unittest.main()
