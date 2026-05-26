@@ -724,6 +724,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("No resume templates found", browser.status_message)
         self.assertIn("Put your detailed resume in templates/", browser.status_message)
         self.assertIn("resume_templates/", browser.status_message)
+        self.assertIn("ROLEMAP_RESUME_TEMPLATE_DIR", browser.status_message)
 
     def test_enter_key_opens_job_url_with_browser_environment_variable(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())

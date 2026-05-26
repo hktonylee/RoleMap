@@ -17,6 +17,7 @@ TEMPLATE_DIRECTORIES = ("resume_templates", "templates")
 DEFAULT_OUTPUT_ROOT = Path("generated") / "resumes"
 DEFAULT_RESULT_FILENAME = "tailored-resume.html"
 GENERATOR_ENV_VAR = "ROLEMAP_RESUME_GENERATOR"
+TEMPLATE_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_TEMPLATE_DIR"
 
 
 @dataclass(frozen=True)
@@ -39,16 +40,24 @@ class ResumeGenerationResult:
 def discover_templates(root: str | Path = ".") -> list[ResumeTemplate]:
     base = Path(root)
     templates: list[ResumeTemplate] = []
-    for directory_name in TEMPLATE_DIRECTORIES:
-        directory = base / directory_name
+    template_directories: list[tuple[Path, Path]] = []
+    environment_directory = os.environ.get(TEMPLATE_DIRECTORY_ENV_VAR, "").strip()
+    if environment_directory:
+        directory = Path(environment_directory)
+        if not directory.is_absolute():
+            directory = base / directory
+        template_directories.append((directory, directory))
+    template_directories.extend((base / directory_name, base) for directory_name in TEMPLATE_DIRECTORIES)
+    for directory, display_base in template_directories:
         if not directory.is_dir():
             continue
         for path in sorted(directory.rglob("*")):
-            if path.is_file() and not _has_hidden_part(path.relative_to(base)):
+            relative_path = path.relative_to(display_base)
+            if path.is_file() and not _has_hidden_part(relative_path):
                 templates.append(
                     ResumeTemplate(
                         path=path,
-                        display_name=path.relative_to(base).as_posix(),
+                        display_name=relative_path.as_posix(),
                     )
                 )
     return sorted(templates, key=lambda template: template.display_name.casefold())

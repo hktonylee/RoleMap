@@ -12,6 +12,7 @@ from collections.abc import Callable, Sequence
 from role_map.jobs import JobRepository, JobRow
 from role_map.resumes import (
     ResumeTemplate,
+    TEMPLATE_DIRECTORY_ENV_VAR,
     discover_templates,
     generate_resume,
     run_resume_generator,
@@ -598,8 +599,8 @@ class _JobBrowser:
             available_templates = list(discover_templates() if templates is None else templates)
             if not available_templates:
                 self.status_message = (
-                    "No resume templates found. Put your detailed resume in templates/ "
-                    "or resume_templates/."
+                    "No resume templates found. Put your detailed resume in templates/, "
+                    f"resume_templates/, or set {TEMPLATE_DIRECTORY_ENV_VAR}."
                 )
                 return False
             self.template_templates = available_templates

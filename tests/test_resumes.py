@@ -3,11 +3,25 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from role_map.resumes import discover_templates, generate_resume, run_resume_generator
 
 
 class ResumeTemplateDiscoveryTest(unittest.TestCase):
+    def test_discovers_resume_templates_from_environment_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "project"
+            root.mkdir()
+            template_dir = Path(temp_dir) / "custom_templates"
+            template_dir.mkdir()
+            (template_dir / "master.md").write_text("# Resume", encoding="utf-8")
+
+            with patch.dict(os.environ, {"ROLEMAP_RESUME_TEMPLATE_DIR": str(template_dir)}):
+                templates = discover_templates(root)
+
+        self.assertEqual([template.display_name for template in templates], ["master.md"])
+
     def test_discovers_resume_templates_from_supported_directories(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
