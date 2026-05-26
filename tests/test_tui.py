@@ -104,6 +104,15 @@ class ToggleSearchRepository:
         return True
 
 
+class RefreshingRepository:
+    def __init__(self) -> None:
+        self.search_count = 0
+
+    def search(self, query: str) -> list[dict[str, object]]:
+        self.search_count += 1
+        return [_row(self.search_count)]
+
+
 class PruneRepository:
     def __init__(self) -> None:
         self.prune_count = 0
@@ -627,6 +636,23 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertEqual(screen.drawn_lists, [[1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
+    def test_r_refreshes_list_rows(self) -> None:
+        repository = RefreshingRepository()
+        screen = KeyScreen([ord("r"), ord("q")])
+        browser = _JobBrowser(screen, repository=repository)
+        original_draw_list = browser._draw_list
+
+        def record_draw(rows: list[dict[str, object]]) -> None:
+            screen.drawn_lists.append([int(row["id"]) for row in rows])
+            original_draw_list(rows)
+
+        browser._draw_list = record_draw
+
+        with patch("curses.curs_set"):
+            browser.run()
+
+        self.assertEqual(screen.drawn_lists, [[1], [2]])
+
     def test_left_arrow_returns_from_detail_to_list(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.mode = "detail"
@@ -733,7 +759,7 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        for key in ("/", "o", "p", "s", "Enter", "Right", "Esc", "q"):
+        for key in ("/", "o", "p", "r", "s", "Enter", "Right", "Esc", "q"):
             calls = [call for call in screen.calls if call.y == 1 and call.text == key]
             self.assertTrue(calls, key)
             self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)

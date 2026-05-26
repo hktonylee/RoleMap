@@ -53,6 +53,7 @@ _SHORTCUT_HELP_KEYS = (
     "o",
     "p",
     "q",
+    "r",
     "s",
 )
 _SHORTCUT_HELP_KEY_PATTERN = re.compile(
@@ -443,8 +444,7 @@ class _JobBrowser:
             "Typing search  Enter/Esc done  Backspace delete"
             if self.search_active
             else (
-                "/ search  s star  o sort  p prune  Enter/Right details  Esc/q quit  "
-                "Up/Down/PgUp/PgDn move"
+                "/ search  s star  o sort  p prune  r refresh  Enter/Right  Esc/q"
             )
         )
         self._add_shortcut_help_line(
@@ -601,6 +601,12 @@ class _JobBrowser:
         if key == ord("p"):
             self.prune_confirmation_pending = True
             self.status_message = "Prune all expired jobs? [y/N]"
+            return False
+        if key == ord("r"):
+            if rows:
+                self.selected_row_id = _row_value(rows[self.selected], "id")
+            self._clear_list_rows()
+            self.status_message = "Refreshed."
             return False
         if key == ord("/"):
             self.search_active = True
