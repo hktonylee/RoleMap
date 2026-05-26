@@ -43,6 +43,21 @@ class RecordingScreen(FakeScreen):
         self.lines[y] = existing[:x] + text + existing[x + len(text) :]
 
 
+class KeyScreen(RecordingScreen):
+    def __init__(self, keys: list[int]) -> None:
+        super().__init__()
+        self.keys = keys
+
+    def erase(self) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def getch(self) -> int:
+        return self.keys.pop(0)
+
+
 class NarrowRecordingScreen(RecordingScreen):
     def getmaxyx(self) -> tuple[int, int]:
         return (24, 20)
@@ -100,7 +115,11 @@ def _row(index: int) -> dict[str, object]:
 
 
 class FakeRepository:
-    pass
+    def __init__(self, rows: list[dict[str, object]] | None = None) -> None:
+        self.rows = [] if rows is None else rows
+
+    def search(self, query: str) -> list[dict[str, object]]:
+        return self.rows
 
 
 class TuiListFormattingTest(unittest.TestCase):
@@ -391,6 +410,30 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
         self.assertEqual(browser.detail_scroll, 0)
+
+    def test_enter_from_list_opens_details_without_opening_url(self) -> None:
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "",
+            "description": "Build systems.",
+        }
+        screen = KeyScreen([curses.KEY_ENTER, 27, ord("q")])
+        browser = _JobBrowser(screen, repository=FakeRepository([row]))
+        opened_urls = []
+
+        with (
+            patch.object(tui.curses, "curs_set"),
+            patch.object(tui, "_init_shortcut_key_color"),
+            patch.object(browser, "_open_job_url", lambda row, opener=None: opened_urls.append(row)),
+        ):
+            browser.run()
+
+        self.assertEqual(opened_urls, [])
 
     def test_space_toggles_selected_job_expired_state(self) -> None:
         repository = ToggleRepository()

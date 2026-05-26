@@ -278,14 +278,17 @@ class _JobBrowser:
 
             self._draw(rows)
             key = self.stdscr.getch()
-            if self.mode == "list" and self._handle_list_key(key, rows):
-                return
-            if self.mode == "sort" and self._handle_sort_key(key):
-                return
-            row = rows[self.selected] if self.mode == "detail" and rows else None
-            if self.mode == "detail" and self._handle_detail_key(key, row):
-                return
-            if self.mode == "template" and self._handle_template_key(key):
+            if self.mode == "list":
+                if self._handle_list_key(key, rows):
+                    return
+            elif self.mode == "sort":
+                if self._handle_sort_key(key):
+                    return
+            elif self.mode == "detail":
+                row = rows[self.selected] if rows else None
+                if self._handle_detail_key(key, row):
+                    return
+            elif self.mode == "template" and self._handle_template_key(key):
                 return
 
     def _current_rows(self) -> list[JobRow]:
