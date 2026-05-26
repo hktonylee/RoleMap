@@ -547,7 +547,7 @@ class _JobBrowser:
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
         if self.prune_confirmation_pending:
             self.prune_confirmation_pending = False
-            if key == ord("Y"):
+            if key in (ord("y"), ord("Y")):
                 pruned_count = self.repository.prune_expired()
                 self._clear_list_rows()
                 job_word = "job" if pruned_count == 1 else "jobs"
@@ -600,9 +600,7 @@ class _JobBrowser:
             return False
         if key == ord("p"):
             self.prune_confirmation_pending = True
-            self.status_message = (
-                "Prune all expired jobs? Press Y to confirm or any other key to cancel."
-            )
+            self.status_message = "Prune all expired jobs? [y/N]"
             return False
         if key == ord("/"):
             self.search_active = True
