@@ -435,6 +435,32 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertEqual(opened_urls, [])
 
+    def test_space_after_entering_detail_toggles_expired_state(self) -> None:
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "",
+            "description": "Build systems.",
+            "is_expired": 0,
+        }
+        repository = FakeRepository([row])
+        repository.toggle_expired = lambda job_id: setattr(
+            repository,
+            "toggled_id",
+            job_id,
+        ) or True
+        screen = KeyScreen([curses.KEY_ENTER, ord(" "), 27, ord("q")])
+        browser = _JobBrowser(screen, repository=repository)
+
+        with patch("curses.curs_set"):
+            browser.run()
+
+        self.assertEqual(repository.toggled_id, 42)
+
     def test_space_toggles_selected_job_expired_state(self) -> None:
         repository = ToggleRepository()
         browser = _JobBrowser(FakeScreen(), repository=repository)
@@ -513,6 +539,31 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.detail_scroll, 0)
 
+    def test_space_toggles_current_job_expired_state_from_detail(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(ord(" "), {"id": 42})
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.toggled_ids, [42])
+
+    def test_detail_view_keeps_current_job_selected_after_rows_reorder(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+        browser.selected = 1
+        browser.detail_job_id = 42
+        rows = [
+            {"id": 41},
+            {"id": 43},
+            {"id": 42},
+        ]
+
+        browser._sync_detail_selection(rows)
+
+        self.assertEqual(browser.selected, 2)
+
 
 class JobBrowserListViewTest(unittest.TestCase):
     def test_list_draws_next_page_when_selection_moves_beyond_visible_rows(self) -> None:
@@ -552,7 +603,8 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
         self.assertIn("Enter open URL", screen.lines[1])
-        self.assertIn("G generate resume", screen.lines[1])
+        self.assertIn("G resume", screen.lines[1])
+        self.assertIn("Space toggle", screen.lines[1])
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()
@@ -806,6 +858,32 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("Last update: 2026-05-24T12:20:01-07:00", rendered)
         self.assertNotIn("First description line.", rendered)
         self.assertIn("Third description line.", rendered)
+
+    def test_expired_detail_text_uses_dim_attrs_and_strikethrough_text(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "publish_date": "2026-05-24",
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "url": "https://example.com/jobs/staff",
+                "salary_range": "$180k-$220k",
+                "last_update": "2026-05-24T12:20:01-07:00",
+                "description": "Build systems.",
+                "is_expired": 1,
+            }
+        )
+
+        job_calls = [
+            call for call in screen.calls if call.y in {0, 3, 4, 5, 6, 7, 9, 10}
+        ]
+        self.assertTrue(job_calls)
+        self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
+        self.assertTrue(all("\u0336" in call.text for call in job_calls))
+        self.assertNotIn(" \u0336", "\n".join(call.text for call in job_calls))
 
     def test_detail_status_message_renders_inverted_in_bottom_left_corner(self) -> None:
         screen = RecordingScreen()

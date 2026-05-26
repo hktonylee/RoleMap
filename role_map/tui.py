@@ -37,7 +37,7 @@ _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
 _SHORTCUT_HELP_KEY_PATTERN = re.compile(
     r"(?<!\S)/(?!\S)|"
-    r"\b(?:Backspace|Down|Enter|Esc|G|Home|Left|PgDn|PgUp|Right|Up|o|q)\b"
+    r"\b(?:Backspace|Down|Enter|Esc|G|Home|Left|PgDn|PgUp|Right|Space|Up|o|q)\b"
 )
 
 
@@ -167,6 +167,18 @@ def _list_row_attrs(row: JobRow, selected: bool) -> int:
     return attrs
 
 
+def _detail_text(row: JobRow, text: str) -> str:
+    if _row_is_expired(row):
+        return _strikethrough(text)
+    return text
+
+
+def _detail_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
+    if _row_is_expired(row):
+        return attrs | curses.A_DIM
+    return attrs
+
+
 def _format_other_information(row: JobRow) -> str:
     values = [
         _row_text(row, "salary_range"),
@@ -180,6 +192,16 @@ def _row_text(row: JobRow, key: str) -> str:
     if value is None:
         return ""
     return str(value)
+
+
+def _row_id(row: JobRow) -> int | None:
+    value = _row_value(row, "id")
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _row_value(row: JobRow, key: str) -> object:
@@ -259,6 +281,7 @@ class _JobBrowser:
         self.sort_reverse = False
         self.search_active = False
         self.detail_scroll = 0
+        self.detail_job_id: int | None = None
         self.status_message = ""
         self.template_templates: list[ResumeTemplate] = []
         self.template_selected = 0
@@ -273,6 +296,7 @@ class _JobBrowser:
         while True:
             rows = self._current_rows()
             self._restore_selected_row(rows)
+            self._sync_detail_selection(rows)
             if self.selected >= len(rows):
                 self.selected = max(0, len(rows) - 1)
 
@@ -390,20 +414,36 @@ class _JobBrowser:
     def _draw_detail(self, row: JobRow) -> None:
         height, width = self.stdscr.getmaxyx()
         title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
-        self._add_line(0, 0, title, width, curses.A_BOLD)
+        self._add_line(
+            0,
+            0,
+            _detail_text(row, title),
+            width,
+            _detail_attrs(row, curses.A_BOLD),
+        )
         self._add_shortcut_help_line(
             1,
             0,
-            "Esc/q/Left back  PgUp/PgDn/Home/End  Enter open URL  G generate resume",
+            "Esc/q/Left back  Space toggle  PgUp/PgDn/Home/End  Enter open URL  G resume",
             width,
         )
 
-        self._add_line(3, 0, f"ID: {_row_text(row, 'id')}", width)
-        self._add_line(4, 0, f"Publish date: {_row_text(row, 'publish_date')}", width)
-        self._add_line(5, 0, f"URL: {_row_text(row, 'url')}", width)
-        self._add_line(6, 0, f"Salary range: {_row_text(row, 'salary_range')}", width)
-        self._add_line(7, 0, f"Last update: {_row_text(row, 'last_update')}", width)
-        self._add_line(9, 0, "Description:", width)
+        detail_attrs = _detail_attrs(row)
+        for y, label, key in (
+            (3, "ID", "id"),
+            (4, "Publish date", "publish_date"),
+            (5, "URL", "url"),
+            (6, "Salary range", "salary_range"),
+            (7, "Last update", "last_update"),
+        ):
+            self._add_line(
+                y,
+                0,
+                _detail_text(row, f"{label}: {_row_text(row, key)}"),
+                width,
+                detail_attrs,
+            )
+        self._add_line(9, 0, _detail_text(row, "Description:"), width, detail_attrs)
 
         lines = _detail_description_lines(row, width)
         visible = lines[
@@ -411,7 +451,7 @@ class _JobBrowser:
             + max(0, height - _DETAIL_DESCRIPTION_START_ROW)
         ]
         for index, line in enumerate(visible, start=_DETAIL_DESCRIPTION_START_ROW):
-            self._add_line(index, 0, line, width)
+            self._add_line(index, 0, _detail_text(row, line), width, detail_attrs)
         self._draw_status_message()
 
     def _draw_template_selector(self) -> None:
@@ -460,6 +500,7 @@ class _JobBrowser:
             self._clear_list_rows()
             self.mode = "detail"
             self.detail_scroll = 0
+            self.detail_job_id = _row_id(rows[self.selected])
             return False
         if key == ord("o"):
             self.mode = "sort"
@@ -511,9 +552,16 @@ class _JobBrowser:
     ) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
+            self.detail_job_id = None
             return False
         if key in (curses.KEY_ENTER, 10, 13) and row is not None:
             self._open_job_url(row, opener)
+            return False
+        if key == ord(" ") and row is not None:
+            job_id = _row_id(row)
+            if job_id is not None:
+                self.repository.toggle_expired(job_id)
+                self.detail_job_id = job_id
             return False
         if key in (ord("G"), ord("g")) and row is not None:
             available_templates = list(discover_templates() if templates is None else templates)
@@ -554,6 +602,14 @@ class _JobBrowser:
             self.detail_scroll = max(0, self.detail_scroll - 1)
             return False
         return False
+
+    def _sync_detail_selection(self, rows: Sequence[JobRow]) -> None:
+        if self.mode != "detail" or self.detail_job_id is None:
+            return
+        for index, row in enumerate(rows):
+            if _row_id(row) == self.detail_job_id:
+                self.selected = index
+                return
 
     def _open_job_url(
         self,
