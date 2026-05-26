@@ -34,6 +34,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return int(args.handler(args, repository))
         finally:
             connection.close()
+    except KeyboardInterrupt:
+        return 130
     except (ValueError, OSError, sqlite3.Error, json.JSONDecodeError) as exc:
         print(f"rolemap: {exc}", file=sys.stderr)
         return 1

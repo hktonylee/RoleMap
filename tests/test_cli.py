@@ -14,6 +14,7 @@ from role_map.cli import (
     _handle_backfill_salaries,
     _handle_clean_descriptions,
     _handle_list_jobs,
+    main,
 )
 from role_map.job_sources import SourceJob
 from role_map.db import connect, initialize_database
@@ -81,6 +82,22 @@ class ListJobsCliTest(unittest.TestCase):
         output = _format_job(row)
 
         self.assertIn("Expired: no", output)
+
+
+class MainCliTest(unittest.TestCase):
+    def test_keyboard_interrupt_returns_130_without_stderr(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "rolemap.sqlite3"
+            stderr = io.StringIO()
+
+            with (
+                patch("role_map.tui.run", side_effect=KeyboardInterrupt),
+                patch.object(sys, "stderr", stderr),
+            ):
+                exit_code = main(["--db", str(db_path), "tui"])
+
+        self.assertEqual(exit_code, 130)
+        self.assertEqual(stderr.getvalue(), "")
 
 
 class BackfillDescriptionsCliTest(unittest.TestCase):
