@@ -36,6 +36,7 @@ _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
 _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
+_STARRED_COLOR_PAIR = 2
 _SHORTCUT_HELP_KEYS = (
     "Backspace",
     "Down",
@@ -52,6 +53,7 @@ _SHORTCUT_HELP_KEYS = (
     "o",
     "p",
     "q",
+    "s",
 )
 _SHORTCUT_HELP_KEY_PATTERN = re.compile(
     r"(?<!\S)/(?!\S)|"
@@ -75,6 +77,15 @@ def _init_shortcut_key_color() -> None:
             else curses.COLOR_YELLOW
         )
         curses.init_pair(_SHORTCUT_KEY_COLOR_PAIR, orange, -1)
+    except curses.error:
+        pass
+
+
+def _init_starred_color() -> None:
+    try:
+        if not curses.has_colors():
+            return
+        curses.init_pair(_STARRED_COLOR_PAIR, curses.COLOR_YELLOW, -1)
     except curses.error:
         pass
 
@@ -183,7 +194,7 @@ def _list_row_attrs(row: JobRow, selected: bool) -> int:
     attrs = curses.A_REVERSE if selected else curses.A_NORMAL
     if _row_is_expired(row):
         attrs |= curses.A_DIM
-    return attrs
+    return _starred_attrs(row, attrs)
 
 
 def _detail_text(row: JobRow, text: str) -> str:
@@ -194,8 +205,17 @@ def _detail_text(row: JobRow, text: str) -> str:
 
 def _detail_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
     if _row_is_expired(row):
-        return attrs | curses.A_DIM
-    return attrs
+        attrs |= curses.A_DIM
+    return _starred_attrs(row, attrs)
+
+
+def _starred_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
+    if not _row_is_starred(row):
+        return attrs
+    try:
+        return attrs | curses.color_pair(_STARRED_COLOR_PAIR)
+    except curses.error:
+        return attrs | curses.A_BOLD
 
 
 def _format_other_information(row: JobRow) -> str:
@@ -246,11 +266,26 @@ def _row_is_pruned(row: JobRow) -> bool:
     return bool(value)
 
 
+def _row_is_starred(row: JobRow) -> bool:
+    value = _row_value(row, "is_starred")
+    if isinstance(value, str):
+        return value.strip().casefold() in {"1", "true", "yes"}
+    return bool(value)
+
+
 def _copy_row_with_expired_state(row: JobRow, is_expired: bool) -> dict[str, object]:
     keys_method = getattr(row, "keys", None)
     keys = keys_method() if callable(keys_method) else ()
     values = {str(key): row[str(key)] for key in keys}
     values["is_expired"] = int(is_expired)
+    return values
+
+
+def _copy_row_with_starred_state(row: JobRow, is_starred: bool) -> dict[str, object]:
+    keys_method = getattr(row, "keys", None)
+    keys = keys_method() if callable(keys_method) else ()
+    values = {str(key): row[str(key)] for key in keys}
+    values["is_starred"] = int(is_starred)
     return values
 
 
@@ -321,6 +356,7 @@ class _JobBrowser:
     def run(self) -> None:
         curses.curs_set(0)
         _init_shortcut_key_color()
+        _init_starred_color()
         self.stdscr.keypad(True)
         while True:
             rows = self._current_rows()
@@ -376,6 +412,14 @@ class _JobBrowser:
             is_expired,
         )
 
+    def _replace_cached_starred_state(self, index: int, is_starred: bool) -> None:
+        if self.list_rows is None or index >= len(self.list_rows):
+            return
+        self.list_rows[index] = _copy_row_with_starred_state(
+            self.list_rows[index],
+            is_starred,
+        )
+
     def _draw(self, rows: Sequence[JobRow]) -> None:
         self.stdscr.erase()
         if self.mode == "template":
@@ -399,8 +443,8 @@ class _JobBrowser:
             "Typing search  Enter/Esc done  Backspace delete"
             if self.search_active
             else (
-                "/ search  o sort  p prune expired  Enter/Right details  Esc/q quit  "
-                "Up/Down/PgUp/PgDn/Home/End move"
+                "/ search  s star  o sort  p prune  Enter/Right details  Esc/q quit  "
+                "Up/Down/PgUp/PgDn move"
             )
         )
         self._add_shortcut_help_line(
@@ -455,7 +499,7 @@ class _JobBrowser:
         self._add_shortcut_help_line(
             1,
             0,
-            "Esc/q/Left back  Space toggle  PgUp/PgDn/Home/End  Enter open URL  G resume",
+            "Esc/q/Left  Space toggle s star  PgUp/PgDn/Home/End  Enter open URL  G resume",
             width,
         )
 
@@ -550,6 +594,10 @@ class _JobBrowser:
             is_expired = self.repository.toggle_expired(int(rows[self.selected]["id"]))
             self._replace_cached_expired_state(self.selected, is_expired)
             return False
+        if key == ord("s") and rows:
+            is_starred = self.repository.toggle_starred(int(rows[self.selected]["id"]))
+            self._replace_cached_starred_state(self.selected, is_starred)
+            return False
         if key == ord("p"):
             self.prune_confirmation_pending = True
             self.status_message = (
@@ -608,6 +656,12 @@ class _JobBrowser:
             job_id = _row_id(row)
             if job_id is not None:
                 self.repository.toggle_expired(job_id)
+                self.detail_job_id = job_id
+            return False
+        if key == ord("s") and row is not None:
+            job_id = _row_id(row)
+            if job_id is not None:
+                self.repository.toggle_starred(job_id)
                 self.detail_job_id = job_id
             return False
         if key in (ord("G"), ord("g")) and row is not None:

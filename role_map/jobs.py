@@ -24,6 +24,7 @@ class JobInput:
     description: str = ""
     url: str = ""
     salary_range: str = ""
+    is_starred: bool | None = None
     is_expired: bool | None = None
     is_pruned: bool | None = None
 
@@ -36,8 +37,9 @@ class JobInput:
             description=_text(data.get("description")),
             url=_text(data.get("url")),
             salary_range=_text(data.get("salary_range")),
-            is_expired=_optional_bool(data.get("is_expired")),
-            is_pruned=_optional_bool(data.get("is_pruned")),
+            is_starred=_optional_bool(data.get("is_starred"), "is_starred"),
+            is_expired=_optional_bool(data.get("is_expired"), "is_expired"),
+            is_pruned=_optional_bool(data.get("is_pruned"), "is_pruned"),
         )
 
 
@@ -60,12 +62,13 @@ class JobRepository:
                     description,
                     url,
                     salary_range,
+                    is_starred,
                     is_expired,
                     is_pruned,
                     last_update,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     validated.publish_date,
@@ -74,6 +77,7 @@ class JobRepository:
                     validated.description,
                     _nullable(validated.url),
                     validated.salary_range,
+                    _stored_bool(validated.is_starred),
                     _stored_bool(validated.is_expired),
                     _stored_bool(validated.is_pruned),
                     now,
@@ -94,6 +98,7 @@ class JobRepository:
                 description = ?,
                 url = ?,
                 salary_range = ?,
+                is_starred = COALESCE(?, is_starred),
                 is_expired = COALESCE(?, is_expired),
                 is_pruned = COALESCE(?, is_pruned),
                 last_update = ?
@@ -106,6 +111,7 @@ class JobRepository:
                 validated.description,
                 _nullable(validated.url),
                 validated.salary_range,
+                _stored_optional_bool(validated.is_starred),
                 _stored_optional_bool(validated.is_expired),
                 _stored_optional_bool(validated.is_pruned),
                 now,
@@ -114,6 +120,24 @@ class JobRepository:
         )
         self.connection.commit()
         return existing_id
+
+    def toggle_starred(self, job_id: int) -> bool:
+        row = self.get(job_id)
+        if row is None:
+            raise ValueError(f"Job not found: {job_id}")
+
+        is_starred = not _stored_bool(row["is_starred"])
+        self.connection.execute(
+            """
+            UPDATE jobs
+            SET is_starred = ?,
+                last_update = ?
+            WHERE id = ?
+            """,
+            (_stored_bool(is_starred), _local_timestamp(), job_id),
+        )
+        self.connection.commit()
+        return is_starred
 
     def toggle_expired(self, job_id: int) -> bool:
         row = self.get(job_id)
@@ -245,6 +269,7 @@ def _validate(job: JobInput) -> JobInput:
         description=job.description.strip(),
         url=job.url.strip(),
         salary_range=job.salary_range.strip(),
+        is_starred=job.is_starred,
         is_expired=job.is_expired,
         is_pruned=job.is_pruned,
     )
@@ -282,7 +307,7 @@ def _stored_optional_bool(value: bool | None) -> int | None:
     return _stored_bool(value)
 
 
-def _optional_bool(value: object) -> bool | None:
+def _optional_bool(value: object, field_name: str) -> bool | None:
     if value is None or value == "":
         return None
     if isinstance(value, bool):
@@ -295,7 +320,7 @@ def _optional_bool(value: object) -> bool | None:
             return True
         if normalized in {"0", "false", "no"}:
             return False
-    raise ValueError("is_expired must be a boolean")
+    raise ValueError(f"{field_name} must be a boolean")
 
 
 def _text(value: object) -> str:

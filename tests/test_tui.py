@@ -66,29 +66,40 @@ class NarrowRecordingScreen(RecordingScreen):
 class ToggleRepository:
     def __init__(self) -> None:
         self.toggled_ids: list[int] = []
+        self.starred_ids: list[int] = []
 
     def toggle_expired(self, job_id: int) -> bool:
         self.toggled_ids.append(job_id)
+        return True
+
+    def toggle_starred(self, job_id: int) -> bool:
+        self.starred_ids.append(job_id)
         return True
 
 
 class ToggleSearchRepository:
     def __init__(self) -> None:
         self.toggled_ids: list[int] = []
+        self.starred_ids: list[int] = []
 
     def search(self, query: str) -> list[dict[str, object]]:
         return [
-            {"id": 1, "company_name": "Alpha", "is_expired": 0},
+            {"id": 1, "company_name": "Alpha", "is_expired": 0, "is_starred": 0},
             {
                 "id": 2,
                 "company_name": "Beta",
                 "is_expired": int(2 in self.toggled_ids),
+                "is_starred": int(2 in self.starred_ids),
             },
-            {"id": 3, "company_name": "Gamma", "is_expired": 0},
+            {"id": 3, "company_name": "Gamma", "is_expired": 0, "is_starred": 0},
         ]
 
     def toggle_expired(self, job_id: int) -> bool:
         self.toggled_ids.append(job_id)
+        return True
+
+    def toggle_starred(self, job_id: int) -> bool:
+        self.starred_ids.append(job_id)
         return True
 
 
@@ -193,6 +204,25 @@ class TuiListFormattingTest(unittest.TestCase):
         self.assertIn("\u0336", line)
         self.assertNotIn(" \u0336", line)
         self.assertTrue(attrs & curses.A_DIM)
+        self.assertTrue(attrs & curses.A_REVERSE)
+
+    def test_starred_list_row_uses_yellow_attrs(self) -> None:
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "$180k-$220k",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "2026-05-24T12:20:01-07:00",
+            "is_starred": 1,
+        }
+
+        with patch.object(tui.curses, "color_pair", return_value=512) as color_pair:
+            attrs = _list_row_attrs(row, selected=True)
+
+        color_pair.assert_called_once_with(tui._STARRED_COLOR_PAIR)
+        self.assertTrue(attrs & 512)
         self.assertTrue(attrs & curses.A_REVERSE)
 
     def test_expired_list_row_clips_by_visible_width(self) -> None:
@@ -494,6 +524,20 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(repository.toggled_ids, [42])
 
+    def test_s_toggles_selected_job_starred_state(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.selected = 1
+        rows = [
+            {"id": 41, "is_starred": 0},
+            {"id": 42, "is_starred": 0},
+        ]
+
+        should_quit = browser._handle_list_key(ord("s"), rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.starred_ids, [42])
+
     def test_p_prompts_before_pruning_expired_jobs_from_list(self) -> None:
         repository = PruneRepository()
         browser = _JobBrowser(FakeScreen(), repository=repository)
@@ -538,6 +582,23 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
     def test_toggle_keeps_list_order_until_leaving_list(self) -> None:
         repository = ToggleSearchRepository()
         screen = KeyScreen([curses.KEY_DOWN, ord(" "), ord("q")])
+        browser = _JobBrowser(screen, repository=repository)
+        original_draw_list = browser._draw_list
+
+        def record_draw(rows: list[dict[str, object]]) -> None:
+            screen.drawn_lists.append([int(row["id"]) for row in rows])
+            original_draw_list(rows)
+
+        browser._draw_list = record_draw
+
+        with patch("curses.curs_set"):
+            browser.run()
+
+        self.assertEqual(screen.drawn_lists, [[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+
+    def test_star_toggle_keeps_list_order_until_leaving_list(self) -> None:
+        repository = ToggleSearchRepository()
+        screen = KeyScreen([curses.KEY_DOWN, ord("s"), ord("q")])
         browser = _JobBrowser(screen, repository=repository)
         original_draw_list = browser._draw_list
 
@@ -609,6 +670,16 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(repository.toggled_ids, [42])
 
+    def test_s_toggles_current_job_starred_state_from_detail(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(ord("s"), {"id": 42})
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.starred_ids, [42])
+
     def test_detail_view_keeps_current_job_selected_after_rows_reorder(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.mode = "detail"
@@ -648,7 +719,7 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        for key in ("/", "o", "p", "Enter", "Right", "Esc", "q"):
+        for key in ("/", "o", "p", "s", "Enter", "Right", "Esc", "q"):
             calls = [call for call in screen.calls if call.y == 1 and call.text == key]
             self.assertTrue(calls, key)
             self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)
@@ -676,6 +747,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("Enter open URL", screen.lines[1])
         self.assertIn("G resume", screen.lines[1])
         self.assertIn("Space toggle", screen.lines[1])
+        self.assertIn("s star", screen.lines[1])
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()
@@ -714,6 +786,24 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             initializer()
 
         init_pair.assert_called_once_with(tui._SHORTCUT_KEY_COLOR_PAIR, 208, -1)
+
+    def test_starred_color_uses_terminal_yellow(self) -> None:
+        initializer = getattr(tui, "_init_starred_color", None)
+        self.assertIsNotNone(initializer)
+        if initializer is None:
+            return
+
+        with (
+            patch.object(tui.curses, "has_colors", return_value=True),
+            patch.object(tui.curses, "init_pair") as init_pair,
+        ):
+            initializer()
+
+        init_pair.assert_called_once_with(
+            tui._STARRED_COLOR_PAIR,
+            tui.curses.COLOR_YELLOW,
+            -1,
+        )
 
     def test_g_key_opens_template_selection_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
@@ -956,6 +1046,32 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
         self.assertTrue(all("\u0336" in call.text for call in job_calls))
         self.assertNotIn(" \u0336", "\n".join(call.text for call in job_calls))
+
+    def test_starred_detail_text_uses_yellow_attrs(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        with patch.object(tui.curses, "color_pair", return_value=512) as color_pair:
+            browser._draw_detail(
+                {
+                    "id": 42,
+                    "publish_date": "2026-05-24",
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "url": "https://example.com/jobs/staff",
+                    "salary_range": "$180k-$220k",
+                    "last_update": "2026-05-24T12:20:01-07:00",
+                    "description": "Build systems.",
+                    "is_starred": 1,
+                }
+            )
+
+        job_calls = [
+            call for call in screen.calls if call.y in {0, 3, 4, 5, 6, 7, 9, 10}
+        ]
+        self.assertTrue(job_calls)
+        self.assertTrue(all(call.attrs & 512 for call in job_calls))
+        self.assertGreaterEqual(color_pair.call_count, len(job_calls))
 
     def test_pruned_detail_text_uses_dim_attrs_and_strikethrough_text(self) -> None:
         screen = RecordingScreen()

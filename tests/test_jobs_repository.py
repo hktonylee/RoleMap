@@ -32,6 +32,7 @@ class JobRepositoryTest(unittest.TestCase):
                 "description",
                 "url",
                 "salary_range",
+                "is_starred",
                 "is_expired",
                 "is_pruned",
                 "last_update",
@@ -59,10 +60,30 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(row["description"], "Build internal systems and tooling.")
         self.assertEqual(row["url"], "https://example.com/jobs/123")
         self.assertEqual(row["salary_range"], "$150k-$190k")
+        self.assertEqual(row["is_starred"], 0)
         self.assertEqual(row["is_expired"], 0)
         self.assertEqual(row["is_pruned"], 0)
         self.assertRegex(row["last_update"], r"^\d{4}-\d{2}-\d{2}T")
         self.assertRegex(row["created_at"], r"^\d{4}-\d{2}-\d{2}T")
+
+    def test_toggle_starred_updates_local_flag(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Senior Software Engineer",
+                company_name="Example Systems",
+                description="Build internal systems and tooling.",
+                url="https://example.com/jobs/123",
+                salary_range="$150k-$190k",
+            )
+        )
+
+        first_value = self.repository.toggle_starred(job_id)
+        second_value = self.repository.toggle_starred(job_id)
+
+        self.assertTrue(first_value)
+        self.assertFalse(second_value)
+        self.assertEqual(self.repository.get(job_id)["is_starred"], 0)
 
     def test_toggle_expired_updates_local_flag(self) -> None:
         job_id = self.repository.add_or_update(
@@ -432,7 +453,7 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertIsInstance(row, sqlite3.Row)
         self.assertEqual(row["name"], "ok")
 
-    def test_initialize_database_migrates_existing_jobs_to_is_expired_and_is_pruned(self) -> None:
+    def test_initialize_database_migrates_existing_jobs_to_is_starred_is_expired_and_is_pruned(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             connection = connect(Path(temp_dir) / "rolemap.sqlite3")
             self.addCleanup(connection.close)
@@ -474,12 +495,15 @@ class DatabaseConnectionTest(unittest.TestCase):
             )
 
             initialize_database(connection)
-            row = connection.execute("SELECT is_expired, is_pruned FROM jobs").fetchone()
+            row = connection.execute(
+                "SELECT is_starred, is_expired, is_pruned FROM jobs"
+            ).fetchone()
             version = connection.execute("PRAGMA user_version").fetchone()[0]
 
+        self.assertEqual(row["is_starred"], 0)
         self.assertEqual(row["is_expired"], 0)
         self.assertEqual(row["is_pruned"], 0)
-        self.assertEqual(version, 3)
+        self.assertEqual(version, 4)
 
 
 if __name__ == "__main__":

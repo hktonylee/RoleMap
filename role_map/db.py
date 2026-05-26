@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def connect(path: str | Path) -> sqlite3.Connection:
@@ -27,6 +27,7 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             description TEXT NOT NULL,
             url TEXT UNIQUE,
             salary_range TEXT,
+            is_starred INTEGER NOT NULL DEFAULT 0,
             is_expired INTEGER NOT NULL DEFAULT 0,
             is_pruned INTEGER NOT NULL DEFAULT 0,
             last_update TEXT NOT NULL,
@@ -50,6 +51,10 @@ def _migrate_jobs(connection: sqlite3.Connection) -> None:
         row["name"]
         for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
     }
+    if "is_starred" not in columns:
+        connection.execute(
+            "ALTER TABLE jobs ADD COLUMN is_starred INTEGER NOT NULL DEFAULT 0"
+        )
     if "is_expired" not in columns:
         connection.execute(
             "ALTER TABLE jobs ADD COLUMN is_expired INTEGER NOT NULL DEFAULT 0"
