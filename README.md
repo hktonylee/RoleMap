@@ -9,6 +9,8 @@ If your job search is spread across browser tabs, emails, pasted notes, and
 one-off resume drafts, RoleMap gives you one durable place to keep the roles
 that matter.
 
+![RoleMap demo](docs/Demo.gif)
+
 ## Why Use RoleMap
 
 - Private by default: your job database stays on your machine.
