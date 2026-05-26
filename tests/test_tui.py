@@ -494,7 +494,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(repository.toggled_ids, [42])
 
-    def test_p_prunes_expired_jobs_from_list(self) -> None:
+    def test_p_prompts_before_pruning_expired_jobs_from_list(self) -> None:
         repository = PruneRepository()
         browser = _JobBrowser(FakeScreen(), repository=repository)
         browser.list_rows = [{"id": 41, "is_expired": 1}]
@@ -502,8 +502,38 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         should_quit = browser._handle_list_key(ord("p"), browser.list_rows)
 
         self.assertFalse(should_quit)
+        self.assertEqual(repository.prune_count, 0)
+        self.assertEqual(
+            browser.status_message,
+            "Prune all expired jobs? Press Y to confirm or any other key to cancel.",
+        )
+        self.assertIsNotNone(browser.list_rows)
+
+    def test_uppercase_y_confirms_pruning_expired_jobs_from_list(self) -> None:
+        repository = PruneRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.list_rows = [{"id": 41, "is_expired": 1}]
+
+        browser._handle_list_key(ord("p"), browser.list_rows)
+        should_quit = browser._handle_list_key(ord("Y"), browser.list_rows)
+
+        self.assertFalse(should_quit)
         self.assertEqual(repository.prune_count, 1)
         self.assertIsNone(browser.list_rows)
+        self.assertEqual(browser.status_message, "Pruned 2 expired jobs.")
+
+    def test_non_y_cancels_pruning_expired_jobs_from_list(self) -> None:
+        repository = PruneRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.list_rows = [{"id": 41, "is_expired": 1}]
+
+        browser._handle_list_key(ord("p"), browser.list_rows)
+        should_quit = browser._handle_list_key(ord("n"), browser.list_rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.prune_count, 0)
+        self.assertIsNotNone(browser.list_rows)
+        self.assertEqual(browser.status_message, "Prune canceled.")
 
     def test_toggle_keeps_list_order_until_leaving_list(self) -> None:
         repository = ToggleSearchRepository()
@@ -976,6 +1006,22 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertEqual(
             status_call.text,
             "Opened URL: https://example.com/jobs/staff",
+        )
+        self.assertTrue(status_call.attrs & curses.A_REVERSE)
+
+    def test_list_status_message_renders_inverted_in_bottom_left_corner(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.status_message = "Prune all expired jobs? Press Y to confirm."
+
+        browser._draw_list([])
+
+        status_call = screen.calls[-1]
+        self.assertEqual(status_call.y, screen.getmaxyx()[0] - 1)
+        self.assertEqual(status_call.x, 0)
+        self.assertEqual(
+            status_call.text,
+            "Prune all expired jobs? Press Y to confirm.",
         )
         self.assertTrue(status_call.attrs & curses.A_REVERSE)
 

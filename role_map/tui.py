@@ -311,6 +311,7 @@ class _JobBrowser:
         self.detail_scroll = 0
         self.detail_job_id: int | None = None
         self.status_message = ""
+        self.prune_confirmation_pending = False
         self.template_templates: list[ResumeTemplate] = []
         self.template_selected = 0
         self.template_job: JobRow | None = None
@@ -411,6 +412,7 @@ class _JobBrowser:
 
         if not rows:
             self._add_line(3, 0, "No jobs found.", width)
+            self._draw_status_message()
             return
 
         widths = _list_column_widths(width)
@@ -425,6 +427,7 @@ class _JobBrowser:
             line = _format_list_row(row, widths, selected=index == self.selected)
             attrs = _list_row_attrs(row, selected=index == self.selected)
             self._add_line(index - page_start + 4, 0, line, width, attrs)
+        self._draw_status_message()
 
     def _draw_sort_selector(self) -> None:
         _height, width = self.stdscr.getmaxyx()
@@ -498,6 +501,16 @@ class _JobBrowser:
         self._draw_status_message()
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
+        if self.prune_confirmation_pending:
+            self.prune_confirmation_pending = False
+            if key == ord("Y"):
+                pruned_count = self.repository.prune_expired()
+                self._clear_list_rows()
+                job_word = "job" if pruned_count == 1 else "jobs"
+                self.status_message = f"Pruned {pruned_count} expired {job_word}."
+            else:
+                self.status_message = "Prune canceled."
+            return False
         if self.search_active and self._handle_search_key(key):
             self._clear_list_rows()
             return False
@@ -538,8 +551,10 @@ class _JobBrowser:
             self._replace_cached_expired_state(self.selected, is_expired)
             return False
         if key == ord("p"):
-            self.repository.prune_expired()
-            self._clear_list_rows()
+            self.prune_confirmation_pending = True
+            self.status_message = (
+                "Prune all expired jobs? Press Y to confirm or any other key to cancel."
+            )
             return False
         if key == ord("/"):
             self.search_active = True
