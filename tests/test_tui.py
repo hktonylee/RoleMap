@@ -711,6 +711,33 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertNotIn("First description line.", rendered)
         self.assertIn("Third description line.", rendered)
 
+    def test_detail_status_message_renders_inverted_in_bottom_left_corner(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.status_message = "Opened URL: https://example.com/jobs/staff"
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "publish_date": "2026-05-24",
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "url": "https://example.com/jobs/staff",
+                "salary_range": "$180k-$220k",
+                "last_update": "2026-05-24T12:20:01-07:00",
+                "description": "Build systems.",
+            }
+        )
+
+        status_call = screen.calls[-1]
+        self.assertEqual(status_call.y, screen.getmaxyx()[0] - 1)
+        self.assertEqual(status_call.x, 0)
+        self.assertEqual(
+            status_call.text,
+            "Opened URL: https://example.com/jobs/staff",
+        )
+        self.assertTrue(status_call.attrs & curses.A_REVERSE)
+
     def test_detail_description_soft_wraps_at_120_characters(self) -> None:
         row = {
             "description": " ".join(["platform"] * 40),

@@ -361,8 +361,6 @@ class _JobBrowser:
         self._add_line(5, 0, f"URL: {_row_text(row, 'url')}", width)
         self._add_line(6, 0, f"Salary range: {_row_text(row, 'salary_range')}", width)
         self._add_line(7, 0, f"Last update: {_row_text(row, 'last_update')}", width)
-        if self.status_message:
-            self._add_line(8, 0, self.status_message, width)
         self._add_line(9, 0, "Description:", width)
 
         lines = _detail_description_lines(row, width)
@@ -372,6 +370,7 @@ class _JobBrowser:
         ]
         for index, line in enumerate(visible, start=_DETAIL_DESCRIPTION_START_ROW):
             self._add_line(index, 0, line, width)
+        self._draw_status_message()
 
     def _draw_template_selector(self) -> None:
         height, width = self.stdscr.getmaxyx()
@@ -382,12 +381,11 @@ class _JobBrowser:
             "Enter generate  Esc/q/Left cancel  Up/Down move",
             width,
         )
-        if self.status_message:
-            self._add_line(2, 0, self.status_message, width)
         for index, template in enumerate(self.template_templates[: max(0, height - 4)]):
             marker = ">" if index == self.template_selected else " "
             attrs = curses.A_REVERSE if index == self.template_selected else curses.A_NORMAL
             self._add_line(index + 4, 0, f"{marker} {template.display_name}", width, attrs)
+        self._draw_status_message()
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
         if self.search_active and self._handle_search_key(key):
@@ -605,6 +603,14 @@ class _JobBrowser:
             self.stdscr.addstr(y, x, clipped, attrs)
         except curses.error:
             pass
+
+    def _draw_status_message(self) -> None:
+        if not self.status_message:
+            return
+        height, width = self.stdscr.getmaxyx()
+        if height <= 0 or width <= 0:
+            return
+        self._add_line(height - 1, 0, self.status_message, width, curses.A_REVERSE)
 
     def _add_shortcut_help_line(
         self,
