@@ -56,14 +56,19 @@ class ListJobsCliTest(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         run.assert_called_once_with(self.repository, initial_query="systems")
 
-    def test_list_jobs_keeps_tabular_output_when_stdout_is_not_terminal(self) -> None:
+    def test_list_jobs_keeps_tabular_output_when_only_stdout_is_not_terminal(self) -> None:
         args = argparse.Namespace(query="")
         stdout = io.StringIO()
 
-        with patch.object(sys, "stdout", stdout):
+        with (
+            patch.object(sys, "stdin", _TtyStringIO()),
+            patch.object(sys, "stdout", stdout),
+            patch("role_map.tui.run") as run,
+        ):
             exit_code = _handle_list_jobs(args, self.repository)
 
         self.assertEqual(exit_code, 0)
+        run.assert_not_called()
         self.assertIn(
             "Example Systems\tStaff Engineer\t$180k-$220k\thttps://example.com/jobs/staff\t0\t",
             stdout.getvalue(),
