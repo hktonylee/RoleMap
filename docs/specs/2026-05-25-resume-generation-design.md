@@ -11,7 +11,7 @@ Add a local-first resume generation flow to the job details view. A user keeps d
 - Generate a job-specific output directory containing the selected template copy, the job description, and a prompt for tailoring the resume.
 - Temporarily leave the curses UI and show the Codex interactive CLI while generation runs.
 - Redraw the job detail view after Codex exits, with a status message pointing at the result HTML file.
-- Run a configured visible command when `ROLEMAP_RESUME_GENERATOR` is set; otherwise default to `codex`.
+- Run `codex` as the visible generator command.
 
 ## Architecture
 
@@ -22,11 +22,7 @@ Add a local-first resume generation flow to the job details view. A user keeps d
 The generator command receives environment variables instead of hardcoded provider logic:
 
 - `ROLEMAP_RESUME_TEMPLATE`: selected source template path.
-- `ROLEMAP_RESUME_TEMPLATE_COPY`: copied template inside the output directory.
-- `ROLEMAP_RESUME_PROMPT`: generated prompt path.
-- `ROLEMAP_RESUME_JOB_DESCRIPTION`: generated job description path.
 - `ROLEMAP_RESUME_OUTPUT_DIR`: output directory for the run.
-- `ROLEMAP_RESUME_RESULT_HTML`: expected final tailored resume HTML path.
 
 This keeps RoleMap independent from any one AI backend while still making the background step scriptable.
 

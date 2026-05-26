@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 from pathlib import Path
 import re
-import shlex
 import shutil
 import subprocess
 
@@ -16,9 +15,7 @@ from role_map.jobs import JobRow
 TEMPLATE_DIRECTORIES = ("resume_templates", "templates")
 DEFAULT_OUTPUT_ROOT = Path("generated") / "resumes"
 DEFAULT_RESULT_FILENAME = "tailored-resume.html"
-GENERATOR_ENV_VAR = "ROLEMAP_RESUME_GENERATOR"
-TEMPLATE_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_TEMPLATE_DIR"
-DESTINATION_DIRECTORY_ENV_VAR = "ROLEMAPE_RESUME_DESTINATION_DIR"
+OUTPUT_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_OUTPUT_DIR"
 
 
 @dataclass(frozen=True)
@@ -41,14 +38,9 @@ class ResumeGenerationResult:
 def discover_templates(root: str | Path = ".") -> list[ResumeTemplate]:
     base = Path(root)
     templates: list[ResumeTemplate] = []
-    template_directories: list[tuple[Path, Path]] = []
-    environment_directory = os.environ.get(TEMPLATE_DIRECTORY_ENV_VAR, "").strip()
-    if environment_directory:
-        directory = Path(environment_directory)
-        if not directory.is_absolute():
-            directory = base / directory
-        template_directories.append((directory, directory))
-    template_directories.extend((base / directory_name, base) for directory_name in TEMPLATE_DIRECTORIES)
+    template_directories = [
+        (base / directory_name, base) for directory_name in TEMPLATE_DIRECTORIES
+    ]
     for directory, display_base in template_directories:
         if not directory.is_dir():
             continue
@@ -70,7 +62,6 @@ def generate_resume(
     *,
     root: str | Path = ".",
     environ: Mapping[str, str] | None = None,
-    run_command: bool = True,
 ) -> ResumeGenerationResult:
     base = Path(root)
     env_source = dict(os.environ if environ is None else environ)
@@ -96,21 +87,6 @@ def generate_resume(
         encoding="utf-8",
     )
 
-    command = env_source.get(GENERATOR_ENV_VAR, "").strip()
-    if run_command and command:
-        run_env = {
-            **env_source,
-            **_result_environment(
-                output_dir=output_dir,
-                source_template=source_template,
-                template_copy_path=template_copy_path,
-                prompt_path=prompt_path,
-                job_description_path=job_description_path,
-                result_html_path=result_html_path,
-            ),
-        }
-        subprocess.run(shlex.split(command), cwd=output_dir, env=run_env, check=True)
-
     return ResumeGenerationResult(
         output_dir=output_dir,
         template_path=source_template,
@@ -118,7 +94,7 @@ def generate_resume(
         job_description_path=job_description_path,
         prompt_path=prompt_path,
         result_html_path=result_html_path,
-        command_ran=bool(run_command and command),
+        command_ran=False,
     )
 
 
@@ -130,28 +106,27 @@ def run_resume_generator(
 ) -> None:
     env_source = dict(os.environ if environ is None else environ)
     run_env = {
-        **env_source,
+        **_without_resume_environment(env_source),
         **_result_environment(
             output_dir=result.output_dir,
             source_template=result.template_path,
-            template_copy_path=result.template_copy_path,
-            prompt_path=result.prompt_path,
-            job_description_path=result.job_description_path,
-            result_html_path=result.result_html_path,
         ),
     }
-    configured_command = env_source.get(GENERATOR_ENV_VAR, "").strip()
-    if configured_command:
-        command = shlex.split(configured_command)
-        cwd = result.output_dir
-    else:
-        cwd = result.template_path.parent.resolve()
-        command = ["codex", "--cd", str(cwd), result.prompt_path.read_text(encoding="utf-8")]
+    cwd = result.template_path.parent.resolve()
+    command = ["codex", "--cd", str(cwd), result.prompt_path.read_text(encoding="utf-8")]
     command_runner(command, cwd=cwd, env=run_env, check=True)
 
 
+def _without_resume_environment(environ: Mapping[str, str]) -> dict[str, str]:
+    return {
+        name: value
+        for name, value in environ.items()
+        if not name.startswith("ROLEMAP_RESUME_")
+    }
+
+
 def _resume_output_root(base: Path, environ: Mapping[str, str]) -> Path:
-    configured_directory = environ.get(DESTINATION_DIRECTORY_ENV_VAR, "").strip()
+    configured_directory = environ.get(OUTPUT_DIRECTORY_ENV_VAR, "").strip()
     if not configured_directory:
         return base / DEFAULT_OUTPUT_ROOT
     output_root = Path(configured_directory)
@@ -205,18 +180,10 @@ def _result_environment(
     *,
     output_dir: Path,
     source_template: Path,
-    template_copy_path: Path,
-    prompt_path: Path,
-    job_description_path: Path,
-    result_html_path: Path,
 ) -> dict[str, str]:
     return {
         "ROLEMAP_RESUME_TEMPLATE": str(source_template),
-        "ROLEMAP_RESUME_TEMPLATE_COPY": str(template_copy_path),
-        "ROLEMAP_RESUME_PROMPT": str(prompt_path),
-        "ROLEMAP_RESUME_JOB_DESCRIPTION": str(job_description_path),
         "ROLEMAP_RESUME_OUTPUT_DIR": str(output_dir),
-        "ROLEMAP_RESUME_RESULT_HTML": str(result_html_path),
     }
 
 

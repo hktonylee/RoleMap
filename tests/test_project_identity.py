@@ -4,8 +4,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from role_map.cli import DEFAULT_DB_PATH, _build_parser, _database_path
-from role_map.resumes import GENERATOR_ENV_VAR
-
 
 class ProjectIdentityTest(unittest.TestCase):
     def test_pyproject_links_role_map_package_and_console_script(self) -> None:
@@ -35,8 +33,6 @@ class ProjectIdentityTest(unittest.TestCase):
                 _database_path(None),
                 Path("/tmp/state") / "rolemap" / "rolemap.sqlite3",
             )
-        self.assertEqual(GENERATOR_ENV_VAR, "ROLEMAP_RESUME_GENERATOR")
-
 
 if __name__ == "__main__":
     unittest.main()

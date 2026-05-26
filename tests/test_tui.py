@@ -857,7 +857,6 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("No resume templates found", browser.status_message)
         self.assertIn("Put your detailed resume in templates/", browser.status_message)
         self.assertIn("resume_templates/", browser.status_message)
-        self.assertIn("ROLEMAP_RESUME_TEMPLATE_DIR", browser.status_message)
 
     def test_enter_key_opens_job_url_with_browser_environment_variable(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
@@ -988,15 +987,15 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
         should_quit = browser._handle_template_key(
             curses.KEY_ENTER,
-            generate=lambda job, selected_template, run_command=False: (
-                generated.append((job, selected_template, run_command)) or result
+            generate=lambda job, selected_template: (
+                generated.append((job, selected_template)) or result
             ),
             run_generator=lambda generation_result: terminal_sessions.append(generation_result),
             show_terminal=lambda operation: operation(),
         )
 
         self.assertFalse(should_quit)
-        self.assertEqual(generated, [(row, template, False)])
+        self.assertEqual(generated, [(row, template)])
         self.assertEqual(terminal_sessions, [result])
         self.assertEqual(browser.mode, "detail")
         self.assertIn("Resume HTML: /tmp/generated/resume/tailored-resume.html", browser.status_message)

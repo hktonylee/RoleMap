@@ -206,18 +206,13 @@ Each run contains:
 - `tailoring-prompt.md`
 - `tailored-resume.html`, written by the generator
 
-RoleMap then opens the visible generator command in your terminal. By default it
-runs `codex`. To use another command, set `ROLEMAP_RESUME_GENERATOR`.
+RoleMap then opens `codex` in your terminal.
 
 The generator receives these environment variables:
 
 ```text
 ROLEMAP_RESUME_TEMPLATE
-ROLEMAP_RESUME_TEMPLATE_COPY
-ROLEMAP_RESUME_PROMPT
-ROLEMAP_RESUME_JOB_DESCRIPTION
 ROLEMAP_RESUME_OUTPUT_DIR
-ROLEMAP_RESUME_RESULT_HTML
 ```
 
 ## Keep Descriptions Source-Backed
