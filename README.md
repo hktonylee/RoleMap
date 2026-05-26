@@ -87,6 +87,12 @@ rolemap show-job 1
 By default, RoleMap writes to:
 
 ```text
+$XDG_STATE_HOME/rolemap/rolemap.sqlite3
+```
+
+If `XDG_STATE_HOME` is unset, RoleMap falls back to:
+
+```text
 ~/.local/state/rolemap/rolemap.sqlite3
 ```
 

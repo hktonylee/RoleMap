@@ -30,6 +30,11 @@ class ProjectIdentityTest(unittest.TestCase):
         self.assertEqual(DEFAULT_DB_PATH, default_db_path)
         with patch.dict("os.environ", {}, clear=True):
             self.assertEqual(_database_path(None), default_db_path)
+        with patch.dict("os.environ", {"XDG_STATE_HOME": "/tmp/state"}, clear=True):
+            self.assertEqual(
+                _database_path(None),
+                Path("/tmp/state") / "rolemap" / "rolemap.sqlite3",
+            )
         self.assertEqual(GENERATOR_ENV_VAR, "ROLEMAP_RESUME_GENERATOR")
 
 

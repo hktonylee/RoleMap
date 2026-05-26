@@ -284,7 +284,11 @@ def _handle_tui(args: argparse.Namespace, repository: JobRepository) -> int:
 
 
 def _database_path(value: str | None) -> Path:
-    return Path(value or os.environ.get("ROLEMAP_DB") or DEFAULT_DB_PATH)
+    if value or os.environ.get("ROLEMAP_DB"):
+        return Path(value or os.environ["ROLEMAP_DB"])
+    if os.environ.get("XDG_STATE_HOME"):
+        return Path(os.environ["XDG_STATE_HOME"]) / "rolemap" / "rolemap.sqlite3"
+    return DEFAULT_DB_PATH
 
 
 def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
