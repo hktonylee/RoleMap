@@ -35,9 +35,26 @@ _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
 _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
+_SHORTCUT_HELP_KEYS = (
+    "Backspace",
+    "Down",
+    "Enter",
+    "Esc",
+    "G",
+    "Home",
+    "Left",
+    "PgDn",
+    "PgUp",
+    "Right",
+    "Space",
+    "Up",
+    "o",
+    "p",
+    "q",
+)
 _SHORTCUT_HELP_KEY_PATTERN = re.compile(
     r"(?<!\S)/(?!\S)|"
-    r"\b(?:Backspace|Down|Enter|Esc|G|Home|Left|PgDn|PgUp|Right|Space|Up|o|q)\b"
+    rf"\b(?:{'|'.join(re.escape(key) for key in _SHORTCUT_HELP_KEYS)})\b"
 )
 
 

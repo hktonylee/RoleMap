@@ -612,6 +612,17 @@ class JobBrowserListViewTest(unittest.TestCase):
         )
         self.assertNotIn("Company 0", rendered)
 
+    def test_list_help_highlights_all_shortcut_keys(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_list([])
+
+        for key in ("/", "o", "p", "Enter", "Right", "Esc", "q"):
+            calls = [call for call in screen.calls if call.y == 1 and call.text == key]
+            self.assertTrue(calls, key)
+            self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)
+
 
 class JobBrowserDetailViewTest(unittest.TestCase):
     def test_detail_help_names_page_scroll_keys(self) -> None:
