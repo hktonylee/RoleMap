@@ -18,6 +18,7 @@ DEFAULT_OUTPUT_ROOT = Path("generated") / "resumes"
 DEFAULT_RESULT_FILENAME = "tailored-resume.html"
 GENERATOR_ENV_VAR = "ROLEMAP_RESUME_GENERATOR"
 TEMPLATE_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_TEMPLATE_DIR"
+DESTINATION_DIRECTORY_ENV_VAR = "ROLEMAPE_RESUME_DESTINATION_DIR"
 
 
 @dataclass(frozen=True)
@@ -72,13 +73,14 @@ def generate_resume(
     run_command: bool = True,
 ) -> ResumeGenerationResult:
     base = Path(root)
+    env_source = dict(os.environ if environ is None else environ)
     source_template = _template_path(template)
     if not source_template.is_absolute():
         source_template = base / source_template
     if not source_template.is_file():
         raise FileNotFoundError(f"resume template not found: {source_template}")
 
-    output_dir = _next_output_dir(base, row)
+    output_dir = _next_output_dir(_resume_output_root(base, env_source), row)
     output_dir.mkdir(parents=True, exist_ok=False)
 
     template_copy_path = output_dir / source_template.name
@@ -94,7 +96,6 @@ def generate_resume(
         encoding="utf-8",
     )
 
-    env_source = dict(os.environ if environ is None else environ)
     command = env_source.get(GENERATOR_ENV_VAR, "").strip()
     if run_command and command:
         run_env = {
@@ -148,7 +149,17 @@ def run_resume_generator(
     command_runner(command, cwd=result.output_dir, env=run_env, check=True)
 
 
-def _next_output_dir(base: Path, row: JobRow) -> Path:
+def _resume_output_root(base: Path, environ: Mapping[str, str]) -> Path:
+    configured_directory = environ.get(DESTINATION_DIRECTORY_ENV_VAR, "").strip()
+    if not configured_directory:
+        return base / DEFAULT_OUTPUT_ROOT
+    output_root = Path(configured_directory)
+    if not output_root.is_absolute():
+        output_root = base / output_root
+    return output_root
+
+
+def _next_output_dir(output_root: Path, row: JobRow) -> Path:
     timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
     name = "-".join(
         part
@@ -160,10 +171,10 @@ def _next_output_dir(base: Path, row: JobRow) -> Path:
         )
         if part
     )
-    candidate = base / DEFAULT_OUTPUT_ROOT / name
+    candidate = output_root / name
     suffix = 2
     while candidate.exists():
-        candidate = base / DEFAULT_OUTPUT_ROOT / f"{name}-{suffix}"
+        candidate = output_root / f"{name}-{suffix}"
         suffix += 1
     return candidate
 

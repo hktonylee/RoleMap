@@ -71,6 +71,33 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertEqual(result.result_html_path.name, "tailored-resume.html")
         self.assertFalse(result.command_ran)
 
+    def test_generate_resume_writes_to_configured_destination_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            template = root / "templates" / "master.html"
+            template.parent.mkdir()
+            template.write_text("<html>Detailed resume</html>", encoding="utf-8")
+            destination = root / "custom_resumes"
+            row = {
+                "id": 42,
+                "company_name": "Example Systems",
+                "job_title": "Staff Platform Engineer",
+                "description": "Build distributed internal tools.",
+                "url": "",
+                "salary_range": "",
+                "publish_date": "",
+            }
+
+            result = generate_resume(
+                row,
+                template,
+                root=root,
+                environ={"ROLEMAPE_RESUME_DESTINATION_DIR": str(destination)},
+            )
+
+        self.assertEqual(result.output_dir.parent, destination)
+        self.assertEqual(result.template_copy_path.parent, result.output_dir)
+
     def test_generate_resume_runs_configured_command_with_generated_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
