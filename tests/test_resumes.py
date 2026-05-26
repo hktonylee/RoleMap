@@ -107,6 +107,7 @@ class ResumeGenerationTest(unittest.TestCase):
                 result,
                 environ={
                     "ROLEMAP_RESUME_PROMPT": "stale",
+                    "ROLEMAP_RESUME_TEMPLATE": "stale",
                     "PATH": "/usr/bin",
                 },
                 command_runner=lambda command, **kwargs: calls.append((command, kwargs)),
@@ -132,7 +133,7 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertEqual(
             resume_env,
             {
-                "ROLEMAP_RESUME_TEMPLATE": str(result.template_path),
+                "ROLEMAP_RESUME_TEMPLATE_DIR": str(result.template_path),
                 "ROLEMAP_RESUME_OUTPUT_DIR": str(result.output_dir),
             },
         )

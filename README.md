@@ -211,7 +211,7 @@ RoleMap then opens `codex` in your terminal.
 The generator receives these environment variables:
 
 ```text
-ROLEMAP_RESUME_TEMPLATE
+ROLEMAP_RESUME_TEMPLATE_DIR
 ROLEMAP_RESUME_OUTPUT_DIR
 ```
 

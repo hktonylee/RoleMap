@@ -21,7 +21,7 @@ Add a local-first resume generation flow to the job details view. A user keeps d
 
 The generator command receives environment variables instead of hardcoded provider logic:
 
-- `ROLEMAP_RESUME_TEMPLATE`: selected source template path.
+- `ROLEMAP_RESUME_TEMPLATE_DIR`: selected source template path.
 - `ROLEMAP_RESUME_OUTPUT_DIR`: output directory for the run.
 
 This keeps RoleMap independent from any one AI backend while still making the background step scriptable.

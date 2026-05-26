@@ -182,7 +182,7 @@ def _result_environment(
     source_template: Path,
 ) -> dict[str, str]:
     return {
-        "ROLEMAP_RESUME_TEMPLATE": str(source_template),
+        "ROLEMAP_RESUME_TEMPLATE_DIR": str(source_template),
         "ROLEMAP_RESUME_OUTPUT_DIR": str(output_dir),
     }
 
