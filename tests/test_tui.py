@@ -27,9 +27,14 @@ class FakeScreen:
 class RecordingScreen(FakeScreen):
     def __init__(self) -> None:
         self.lines: dict[int, str] = {}
+        self.calls: list[SimpleNamespace] = []
 
     def addstr(self, y: int, x: int, text: str, attrs: int = curses.A_NORMAL) -> None:
-        self.lines[y] = text
+        self.calls.append(SimpleNamespace(y=y, x=x, text=text, attrs=attrs))
+        existing = self.lines.get(y, "")
+        if x > len(existing):
+            existing = existing.ljust(x)
+        self.lines[y] = existing[:x] + text + existing[x + len(text) :]
 
 
 class NarrowRecordingScreen(RecordingScreen):
@@ -452,6 +457,44 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
         self.assertIn("Enter open URL", screen.lines[1])
         self.assertIn("G generate resume", screen.lines[1])
+
+    def test_detail_help_highlights_enter_shortcut_key(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "publish_date": "2026-05-24",
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "url": "https://example.com/jobs/staff",
+                "salary_range": "$180k-$220k",
+                "last_update": "2026-05-24T12:20:01-07:00",
+                "description": "Build systems.",
+            }
+        )
+
+        enter_calls = [call for call in screen.calls if call.text == "Enter"]
+        self.assertEqual(len(enter_calls), 1)
+        self.assertNotEqual(enter_calls[0].attrs, curses.A_NORMAL)
+
+    def test_shortcut_key_color_prefers_terminal_orange(self) -> None:
+        initializer = getattr(tui, "_init_shortcut_key_color", None)
+        self.assertIsNotNone(initializer)
+        if initializer is None:
+            return
+
+        with (
+            patch.object(tui.curses, "start_color"),
+            patch.object(tui.curses, "use_default_colors"),
+            patch.object(tui.curses, "has_colors", return_value=True),
+            patch.object(tui.curses, "init_pair") as init_pair,
+            patch.object(tui.curses, "COLORS", 256, create=True),
+        ):
+            initializer()
+
+        init_pair.assert_called_once_with(tui._SHORTCUT_KEY_COLOR_PAIR, 208, -1)
 
     def test_g_key_opens_template_selection_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())

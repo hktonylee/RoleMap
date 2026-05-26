@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import curses
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -32,10 +33,52 @@ _SORT_LABEL_BY_COLUMN = {column: label for _key, column, label in _SORT_COLUMNS}
 _DETAIL_DESCRIPTION_START_ROW = 10
 _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
+_SHORTCUT_KEY_COLOR_PAIR = 1
+_SHORTCUT_KEY_ORANGE = 208
+_SHORTCUT_HELP_KEY_PATTERN = re.compile(
+    r"(?<!\S)/(?!\S)|"
+    r"\b(?:Backspace|Down|Enter|Esc|G|Home|Left|PgDn|PgUp|Right|Up|o|q)\b"
+)
 
 
 def run(repository: JobRepository, initial_query: str = "") -> None:
     curses.wrapper(lambda stdscr: _JobBrowser(stdscr, repository, initial_query).run())
+
+
+def _init_shortcut_key_color() -> None:
+    try:
+        curses.start_color()
+        curses.use_default_colors()
+        if not curses.has_colors():
+            return
+        orange = (
+            _SHORTCUT_KEY_ORANGE
+            if getattr(curses, "COLORS", 0) > _SHORTCUT_KEY_ORANGE
+            else curses.COLOR_YELLOW
+        )
+        curses.init_pair(_SHORTCUT_KEY_COLOR_PAIR, orange, -1)
+    except curses.error:
+        pass
+
+
+def _shortcut_key_attrs(attrs: int = curses.A_NORMAL) -> int:
+    try:
+        return attrs | curses.A_BOLD | curses.color_pair(_SHORTCUT_KEY_COLOR_PAIR)
+    except curses.error:
+        return attrs | curses.A_BOLD
+
+
+def _shortcut_help_segments(text: str) -> list[tuple[str, bool]]:
+    segments: list[tuple[str, bool]] = []
+    offset = 0
+    for match in _SHORTCUT_HELP_KEY_PATTERN.finditer(text):
+        if match.start() > offset:
+            segments.append((text[offset : match.start()], False))
+        segments.append((match.group(), True))
+        offset = match.end()
+    if offset < len(text):
+        segments.append((text[offset:], False))
+    return segments
 
 
 def _list_column_widths(total_width: int) -> tuple[int, int, int, int]:
@@ -215,6 +258,7 @@ class _JobBrowser:
 
     def run(self) -> None:
         curses.curs_set(0)
+        _init_shortcut_key_color()
         self.stdscr.keypad(True)
         while True:
             rows = _sort_list_rows(
@@ -264,7 +308,7 @@ class _JobBrowser:
                 "Up/Down/PgUp/PgDn/Home/End move"
             )
         )
-        self._add_line(
+        self._add_shortcut_help_line(
             1,
             0,
             f"Sort: {sort_label}  {help_text}",
@@ -291,7 +335,12 @@ class _JobBrowser:
     def _draw_sort_selector(self) -> None:
         _height, width = self.stdscr.getmaxyx()
         self._add_line(0, 0, "Choose sort column", width, curses.A_BOLD)
-        self._add_line(1, 0, "Lowercase asc  Uppercase desc  Esc/q cancel", width)
+        self._add_shortcut_help_line(
+            1,
+            0,
+            "Lowercase asc  Uppercase desc  Esc/q cancel",
+            width,
+        )
         for index, (key, column, label) in enumerate(_SORT_COLUMNS, start=3):
             marker = "*" if column == self.sort_column else " "
             self._add_line(index, 0, f"{marker} {key}/{key.upper()}  {label}", width)
@@ -300,7 +349,7 @@ class _JobBrowser:
         height, width = self.stdscr.getmaxyx()
         title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
         self._add_line(0, 0, title, width, curses.A_BOLD)
-        self._add_line(
+        self._add_shortcut_help_line(
             1,
             0,
             "Esc/q/Left back  PgUp/PgDn/Home/End  Enter open URL  G generate resume",
@@ -327,7 +376,12 @@ class _JobBrowser:
     def _draw_template_selector(self) -> None:
         height, width = self.stdscr.getmaxyx()
         self._add_line(0, 0, "Choose resume template", width, curses.A_BOLD)
-        self._add_line(1, 0, "Enter generate  Esc/q/Left cancel  Up/Down move", width)
+        self._add_shortcut_help_line(
+            1,
+            0,
+            "Enter generate  Esc/q/Left cancel  Up/Down move",
+            width,
+        )
         if self.status_message:
             self._add_line(2, 0, self.status_message, width)
         for index, template in enumerate(self.template_templates[: max(0, height - 4)]):
@@ -551,3 +605,27 @@ class _JobBrowser:
             self.stdscr.addstr(y, x, clipped, attrs)
         except curses.error:
             pass
+
+    def _add_shortcut_help_line(
+        self,
+        y: int,
+        x: int,
+        text: str,
+        width: int,
+        attrs: int = curses.A_NORMAL,
+    ) -> None:
+        if y >= self.stdscr.getmaxyx()[0]:
+            return
+        offset = x
+        for segment, is_key in _shortcut_help_segments(text):
+            if offset >= width - 1:
+                return
+            clipped = _clip_for_terminal(segment, width - offset)
+            if not clipped:
+                return
+            segment_attrs = _shortcut_key_attrs(attrs) if is_key else attrs
+            try:
+                self.stdscr.addstr(y, offset, clipped, segment_attrs)
+            except curses.error:
+                pass
+            offset += len(clipped)
