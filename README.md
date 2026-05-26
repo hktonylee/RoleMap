@@ -151,6 +151,30 @@ when a row is inserted or updated.
 If a URL is present, importing the same URL again updates the existing row and
 refreshes `last_update`.
 
+## Project-Local Codex Skill
+
+RoleMap includes a Codex skill for importing source-backed job descriptions:
+
+```text
+codex-skills/add-job-description/SKILL.md
+```
+
+Example request:
+
+```text
+Use the RoleMap add-job-description skill to import all jobs from Gmail.
+
+Search Gmail for job-posting emails, extract each posting URL, fetch the
+canonical posting text, write the jobs to a temporary JSON file, and run:
+
+python -m role_map add-job --json /path/to/jobs.json
+
+Use empty strings for unknown optional fields. Do not summarize descriptions.
+```
+
+The skill tells Codex to prefer company posting text over email snippets, keep
+the full source-backed description, and let RoleMap upsert duplicates by URL.
+
 ## Resume Generation
 
 Put detailed master resume files in either:
