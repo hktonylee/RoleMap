@@ -133,6 +133,20 @@ class JobRepository:
         self.connection.commit()
         return is_expired
 
+    def prune_expired(self) -> int:
+        cursor = self.connection.execute(
+            """
+            UPDATE jobs
+            SET is_pruned = 1,
+                last_update = ?
+            WHERE is_expired = 1
+              AND is_pruned = 0
+            """,
+            (_local_timestamp(),),
+        )
+        self.connection.commit()
+        return cursor.rowcount
+
     def get(self, job_id: int) -> sqlite3.Row | None:
         return self.connection.execute(
             "SELECT * FROM jobs WHERE id = ?",

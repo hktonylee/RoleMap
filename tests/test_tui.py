@@ -92,6 +92,15 @@ class ToggleSearchRepository:
         return True
 
 
+class PruneRepository:
+    def __init__(self) -> None:
+        self.prune_count = 0
+
+    def prune_expired(self) -> int:
+        self.prune_count += 1
+        return 2
+
+
 class KeyScreen(RecordingScreen):
     def __init__(self, keys: list[int]) -> None:
         super().__init__()
@@ -484,6 +493,17 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertFalse(should_quit)
         self.assertEqual(repository.toggled_ids, [42])
+
+    def test_p_prunes_expired_jobs_from_list(self) -> None:
+        repository = PruneRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.list_rows = [{"id": 41, "is_expired": 1}]
+
+        should_quit = browser._handle_list_key(ord("p"), browser.list_rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.prune_count, 1)
+        self.assertIsNone(browser.list_rows)
 
     def test_toggle_keeps_list_order_until_leaving_list(self) -> None:
         repository = ToggleSearchRepository()

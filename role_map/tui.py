@@ -380,7 +380,7 @@ class _JobBrowser:
             "Typing search  Enter/Esc done  Backspace delete"
             if self.search_active
             else (
-                "/ search  o sort  Enter/Right details  Esc/q quit  "
+                "/ search  o sort  p prune expired  Enter/Right details  Esc/q quit  "
                 "Up/Down/PgUp/PgDn/Home/End move"
             )
         )
@@ -518,6 +518,10 @@ class _JobBrowser:
         if key == ord(" ") and rows:
             is_expired = self.repository.toggle_expired(int(rows[self.selected]["id"]))
             self._replace_cached_expired_state(self.selected, is_expired)
+            return False
+        if key == ord("p"):
+            self.repository.prune_expired()
+            self._clear_list_rows()
             return False
         if key == ord("/"):
             self.search_active = True
