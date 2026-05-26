@@ -13,6 +13,7 @@ class JobRow(Protocol):
 
 JobRows: TypeAlias = list[sqlite3.Row]
 _JOB_LIST_ORDER = "is_expired ASC, publish_date DESC, id DESC"
+_ACTIVE_JOB_FILTER = "is_pruned = 0"
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class JobInput:
     url: str = ""
     salary_range: str = ""
     is_expired: bool | None = None
+    is_pruned: bool | None = None
 
     @classmethod
     def from_mapping(cls, data: dict[str, object]) -> "JobInput":
@@ -35,6 +37,7 @@ class JobInput:
             url=_text(data.get("url")),
             salary_range=_text(data.get("salary_range")),
             is_expired=_optional_bool(data.get("is_expired")),
+            is_pruned=_optional_bool(data.get("is_pruned")),
         )
 
 
@@ -58,10 +61,11 @@ class JobRepository:
                     url,
                     salary_range,
                     is_expired,
+                    is_pruned,
                     last_update,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     validated.publish_date,
@@ -71,6 +75,7 @@ class JobRepository:
                     _nullable(validated.url),
                     validated.salary_range,
                     _stored_bool(validated.is_expired),
+                    _stored_bool(validated.is_pruned),
                     now,
                     now,
                 ),
@@ -90,6 +95,7 @@ class JobRepository:
                 url = ?,
                 salary_range = ?,
                 is_expired = COALESCE(?, is_expired),
+                is_pruned = COALESCE(?, is_pruned),
                 last_update = ?
             WHERE id = ?
             """,
@@ -101,6 +107,7 @@ class JobRepository:
                 _nullable(validated.url),
                 validated.salary_range,
                 _stored_optional_bool(validated.is_expired),
+                _stored_optional_bool(validated.is_pruned),
                 now,
                 existing_id,
             ),
@@ -173,6 +180,7 @@ class JobRepository:
             self.connection.execute(
                 f"""
                 SELECT * FROM jobs
+                WHERE {_ACTIVE_JOB_FILTER}
                 ORDER BY {_JOB_LIST_ORDER}
                 """
             ).fetchall()
@@ -188,12 +196,15 @@ class JobRepository:
             self.connection.execute(
                 f"""
                 SELECT * FROM jobs
-                WHERE publish_date LIKE ? COLLATE NOCASE
-                   OR job_title LIKE ? COLLATE NOCASE
-                   OR company_name LIKE ? COLLATE NOCASE
-                   OR description LIKE ? COLLATE NOCASE
-                   OR url LIKE ? COLLATE NOCASE
-                   OR salary_range LIKE ? COLLATE NOCASE
+                WHERE {_ACTIVE_JOB_FILTER}
+                  AND (
+                    publish_date LIKE ? COLLATE NOCASE
+                    OR job_title LIKE ? COLLATE NOCASE
+                    OR company_name LIKE ? COLLATE NOCASE
+                    OR description LIKE ? COLLATE NOCASE
+                    OR url LIKE ? COLLATE NOCASE
+                    OR salary_range LIKE ? COLLATE NOCASE
+                  )
                 ORDER BY {_JOB_LIST_ORDER}
                 """,
                 (pattern, pattern, pattern, pattern, pattern, pattern),
@@ -221,6 +232,7 @@ def _validate(job: JobInput) -> JobInput:
         url=job.url.strip(),
         salary_range=job.salary_range.strip(),
         is_expired=job.is_expired,
+        is_pruned=job.is_pruned,
     )
     missing = [
         name

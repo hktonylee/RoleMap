@@ -33,6 +33,7 @@ class JobRepositoryTest(unittest.TestCase):
                 "url",
                 "salary_range",
                 "is_expired",
+                "is_pruned",
                 "last_update",
             },
         )
@@ -59,6 +60,7 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(row["url"], "https://example.com/jobs/123")
         self.assertEqual(row["salary_range"], "$150k-$190k")
         self.assertEqual(row["is_expired"], 0)
+        self.assertEqual(row["is_pruned"], 0)
         self.assertRegex(row["last_update"], r"^\d{4}-\d{2}-\d{2}T")
         self.assertRegex(row["created_at"], r"^\d{4}-\d{2}-\d{2}T")
 
@@ -273,6 +275,52 @@ class JobRepositoryTest(unittest.TestCase):
             [active_new_id, active_old_id, expired_new_id, expired_old_id],
         )
 
+    def test_list_omits_pruned_jobs(self) -> None:
+        active_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-22",
+                job_title="Active Engineer",
+                company_name="Example Systems",
+                description="Build active systems.",
+            )
+        )
+        self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Pruned Engineer",
+                company_name="Example Systems",
+                description="Build pruned systems.",
+                is_pruned=True,
+            )
+        )
+
+        rows = self.repository.list()
+
+        self.assertEqual([row["id"] for row in rows], [active_id])
+
+    def test_search_omits_pruned_jobs(self) -> None:
+        active_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-22",
+                job_title="Active Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+            )
+        )
+        self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-25",
+                job_title="Pruned Engineer",
+                company_name="Example Systems",
+                description="Build shared systems.",
+                is_pruned=True,
+            )
+        )
+
+        rows = self.repository.search("shared systems")
+
+        self.assertEqual([row["id"] for row in rows], [active_id])
+
     def test_search_matches_core_job_fields(self) -> None:
         self.repository.add_or_update(
             JobInput(
@@ -348,7 +396,7 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertIsInstance(row, sqlite3.Row)
         self.assertEqual(row["name"], "ok")
 
-    def test_initialize_database_migrates_existing_jobs_to_is_expired(self) -> None:
+    def test_initialize_database_migrates_existing_jobs_to_is_expired_and_is_pruned(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             connection = connect(Path(temp_dir) / "rolemap.sqlite3")
             self.addCleanup(connection.close)
@@ -390,11 +438,12 @@ class DatabaseConnectionTest(unittest.TestCase):
             )
 
             initialize_database(connection)
-            row = connection.execute("SELECT is_expired FROM jobs").fetchone()
+            row = connection.execute("SELECT is_expired, is_pruned FROM jobs").fetchone()
             version = connection.execute("PRAGMA user_version").fetchone()[0]
 
         self.assertEqual(row["is_expired"], 0)
-        self.assertEqual(version, 2)
+        self.assertEqual(row["is_pruned"], 0)
+        self.assertEqual(version, 3)
 
 
 if __name__ == "__main__":

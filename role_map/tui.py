@@ -112,8 +112,9 @@ def _sort_list_rows(
     column: str | None,
     reverse: bool = False,
 ) -> list[JobRow]:
-    active = [row for row in rows if not _row_is_expired(row)]
-    expired = [row for row in rows if _row_is_expired(row)]
+    visible_rows = [row for row in rows if not _row_is_pruned(row)]
+    active = [row for row in visible_rows if not _row_is_expired(row)]
+    expired = [row for row in visible_rows if _row_is_expired(row)]
     if column is None:
         return active + expired
     return _sort_list_group(active, column, reverse) + _sort_list_group(
@@ -212,7 +213,16 @@ def _row_value(row: JobRow, key: str) -> object:
 
 
 def _row_is_expired(row: JobRow) -> bool:
+    if _row_is_pruned(row):
+        return True
     value = _row_value(row, "is_expired")
+    if isinstance(value, str):
+        return value.strip().casefold() in {"1", "true", "yes"}
+    return bool(value)
+
+
+def _row_is_pruned(row: JobRow) -> bool:
+    value = _row_value(row, "is_pruned")
     if isinstance(value, str):
         return value.strip().casefold() in {"1", "true", "yes"}
     return bool(value)

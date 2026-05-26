@@ -332,6 +332,8 @@ def _with_extracted_salary(job: JobInput) -> JobInput:
         description=job.description,
         url=job.url,
         salary_range=salary_range,
+        is_expired=job.is_expired,
+        is_pruned=job.is_pruned,
     )
 
 

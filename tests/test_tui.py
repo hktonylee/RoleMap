@@ -302,6 +302,16 @@ class TuiSortingTest(unittest.TestCase):
 
         self.assertEqual([row["id"] for row in sorted_rows], [2, 4, 3, 1])
 
+    def test_sort_list_rows_omits_pruned_rows(self) -> None:
+        rows = [
+            {"id": 1, "company_name": "Alpha Systems", "is_pruned": 0},
+            {"id": 2, "company_name": "Beta Systems", "is_pruned": 1},
+        ]
+
+        sorted_rows = tui._sort_list_rows(rows, "company_name")
+
+        self.assertEqual([row["id"] for row in sorted_rows], [1])
+
     def test_o_key_opens_sort_column_selection(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
 
@@ -884,6 +894,31 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
         self.assertTrue(all("\u0336" in call.text for call in job_calls))
         self.assertNotIn(" \u0336", "\n".join(call.text for call in job_calls))
+
+    def test_pruned_detail_text_uses_dim_attrs_and_strikethrough_text(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "publish_date": "2026-05-24",
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "url": "https://example.com/jobs/staff",
+                "salary_range": "$180k-$220k",
+                "last_update": "2026-05-24T12:20:01-07:00",
+                "description": "Build systems.",
+                "is_pruned": 1,
+            }
+        )
+
+        job_calls = [
+            call for call in screen.calls if call.y in {0, 3, 4, 5, 6, 7, 9, 10}
+        ]
+        self.assertTrue(job_calls)
+        self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
+        self.assertTrue(all("\u0336" in call.text for call in job_calls))
 
     def test_detail_status_message_renders_inverted_in_bottom_left_corner(self) -> None:
         screen = RecordingScreen()
