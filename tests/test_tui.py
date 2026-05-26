@@ -469,7 +469,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
             "salary_range": "",
             "url": "https://example.com/jobs/staff",
             "last_update": "",
-            "description": "Build systems.",
+            "job_description": "Build systems.",
         }
         screen = KeyScreen([curses.KEY_ENTER, 27, ord("q")])
         browser = _JobBrowser(screen, repository=FakeRepository([row]))
@@ -493,7 +493,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
             "salary_range": "",
             "url": "https://example.com/jobs/staff",
             "last_update": "",
-            "description": "Build systems.",
+            "job_description": "Build systems.",
             "is_expired": 0,
         }
         repository = FakeRepository([row])
@@ -660,7 +660,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
             "url": "https://example.com/jobs/staff",
             "salary_range": "$180k-$220k",
             "last_update": "2026-05-24T12:20:01-07:00",
-            "description": "\n".join(f"Line {index}" for index in range(30)),
+            "job_description": "\n".join(f"Line {index}" for index in range(30)),
         }
 
         should_quit = browser._handle_detail_key(curses.KEY_END, row)
@@ -752,7 +752,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "url": "https://example.com/jobs/staff",
                 "salary_range": "$180k-$220k",
                 "last_update": "2026-05-24T12:20:01-07:00",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
             }
         )
 
@@ -775,7 +775,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "url": "https://example.com/jobs/staff",
                 "salary_range": "$180k-$220k",
                 "last_update": "2026-05-24T12:20:01-07:00",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
             }
         )
 
@@ -828,7 +828,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "id": 42,
                 "company_name": "Example Systems",
                 "job_title": "Staff Engineer",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
             },
             templates=[object()],
         )
@@ -847,7 +847,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "id": 42,
                 "company_name": "Example Systems",
                 "job_title": "Staff Engineer",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
             },
             templates=[],
         )
@@ -872,7 +872,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "company_name": "Example Systems",
                     "job_title": "Staff Engineer",
                     "url": "https://example.com/jobs/staff",
-                    "description": "Build systems.",
+                    "job_description": "Build systems.",
                 },
                 opener=lambda command, **_kwargs: (
                     launched_commands.append(command)
@@ -902,7 +902,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                         "company_name": "Example Systems",
                         "job_title": "Staff Engineer",
                         "url": "https://example.com/jobs/staff",
-                        "description": "Build systems.",
+                        "job_description": "Build systems.",
                     },
                     opener=lambda _command, **kwargs: (
                         launched_kwargs.append(kwargs)
@@ -930,7 +930,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                         "company_name": "Example Systems",
                         "job_title": "Staff Engineer",
                         "url": "https://example.com/jobs/staff",
-                        "description": "Build systems.",
+                        "job_description": "Build systems.",
                     },
                     opener=lambda _command, **_kwargs: SimpleNamespace(
                         returncode=1,
@@ -956,7 +956,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "company_name": "Example Systems",
                     "job_title": "Staff Engineer",
                     "url": "https://example.com/jobs/staff",
-                    "description": "Build systems.",
+                    "job_description": "Build systems.",
                 },
                 opener=lambda command, **_kwargs: (
                     launched_commands.append(command)
@@ -974,7 +974,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             "id": 42,
             "company_name": "Example Systems",
             "job_title": "Staff Engineer",
-            "description": "Build systems.",
+            "job_description": "Build systems.",
         }
         browser.mode = "template"
         browser.template_templates = [template]
@@ -1015,7 +1015,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "url": "https://example.com/jobs/staff",
                 "salary_range": "$180k-$220k",
                 "last_update": "2026-05-24T12:20:01-07:00",
-                "description": "\n".join(
+                "job_description": "\n".join(
                     [
                         "First description line.",
                         "Second description line.",
@@ -1047,7 +1047,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "url": "https://example.com/jobs/staff",
                 "salary_range": "$180k-$220k",
                 "last_update": "2026-05-24T12:20:01-07:00",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
                 "is_expired": 1,
             }
         )
@@ -1074,7 +1074,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                     "url": "https://example.com/jobs/staff",
                     "salary_range": "$180k-$220k",
                     "last_update": "2026-05-24T12:20:01-07:00",
-                    "description": "Build systems.",
+                    "job_description": "Build systems.",
                     "is_starred": 1,
                 }
             )
@@ -1099,7 +1099,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "url": "https://example.com/jobs/staff",
                 "salary_range": "$180k-$220k",
                 "last_update": "2026-05-24T12:20:01-07:00",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
                 "is_pruned": 1,
             }
         )
@@ -1125,7 +1125,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "url": "https://example.com/jobs/staff",
                 "salary_range": "$180k-$220k",
                 "last_update": "2026-05-24T12:20:01-07:00",
-                "description": "Build systems.",
+                "job_description": "Build systems.",
             }
         )
 
@@ -1156,7 +1156,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
     def test_detail_description_soft_wraps_at_120_characters(self) -> None:
         row = {
-            "description": " ".join(["platform"] * 40),
+            "job_description": " ".join(["platform"] * 40),
         }
 
         lines = tui._detail_description_lines(row, 200)

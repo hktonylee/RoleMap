@@ -171,7 +171,7 @@ def _handle_backfill_descriptions(args: argparse.Namespace, repository: JobRepos
                 file=sys.stderr,
             )
             continue
-        if not args.overwrite and not _looks_generated_description(str(row["description"])):
+        if not args.overwrite and not _looks_generated_description(str(row["job_description"])):
             continue
         if args.limit and attempted >= args.limit:
             break
@@ -216,7 +216,7 @@ def _handle_backfill_salaries(args: argparse.Namespace, repository: JobRepositor
             break
         attempted += 1
 
-        salary_range = extract_salary_range(str(row["description"] or ""))
+        salary_range = extract_salary_range(str(row["job_description"] or ""))
         source = "description"
         if not salary_range and args.fetch and url and _looks_like_job_posting_url(url):
             try:
@@ -254,7 +254,7 @@ def _clean_descriptions(args: argparse.Namespace, repository: JobRepository) -> 
     for row in repository.list():
         if args.limit and updated >= args.limit:
             break
-        original = str(row["description"] or "")
+        original = str(row["job_description"] or "")
         if _looks_generated_description(original):
             continue
 
@@ -309,7 +309,7 @@ def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
                 publish_date=args.publish_date,
                 job_title=args.job_title,
                 company_name=args.company_name,
-                description=description,
+                job_description=description,
                 url=args.url,
                 salary_range=args.salary_range,
             )
@@ -321,7 +321,7 @@ def _with_extracted_salary(job: JobInput) -> JobInput:
     if job.salary_range or not _is_indeed_url(job.url):
         return job
 
-    salary_range = extract_salary_range(job.description)
+    salary_range = extract_salary_range(job.job_description)
     if not salary_range:
         return job
 
@@ -329,7 +329,7 @@ def _with_extracted_salary(job: JobInput) -> JobInput:
         publish_date=job.publish_date,
         job_title=job.job_title,
         company_name=job.company_name,
-        description=job.description,
+        job_description=job.job_description,
         url=job.url,
         salary_range=salary_range,
         is_expired=job.is_expired,
@@ -348,7 +348,7 @@ def _format_job(row: sqlite3.Row) -> str:
         ("Expired", "yes" if row["is_expired"] else "no"),
         ("Last update", row["last_update"]),
         ("Created at", row["created_at"]),
-        ("Description", row["description"]),
+        ("Description", row["job_description"]),
     ]
     return "\n".join(f"{label}: {value or ''}" for label, value in fields)
 
@@ -378,5 +378,5 @@ def _is_indeed_url(value: str) -> bool:
 def _is_indeed_source(row: sqlite3.Row) -> bool:
     if _is_indeed_url(str(row["url"] or "")):
         return True
-    description = str(row["description"] or "").lstrip().lower()
+    description = str(row["job_description"] or "").lstrip().lower()
     return description.startswith("source: indeed")

@@ -139,7 +139,7 @@ Import one JSON object:
   "publish_date": "2026-05-20",
   "job_title": "Senior Software Engineer",
   "company_name": "Example Systems",
-  "description": "Full job description text...",
+  "job_description": "Full job description text...",
   "url": "https://example.com/jobs/123",
   "salary_range": "$150k-$190k"
 }
@@ -151,7 +151,7 @@ rolemap add-job --json job.json
 
 `add-job --json` also accepts an array of job objects.
 
-RoleMap requires `job_title`, `company_name`, and `description`. `publish_date`,
+RoleMap requires `job_title`, `company_name`, and `job_description`. `publish_date`,
 `url`, and `salary_range` can be empty strings when unknown. `is_expired` is
 optional and defaults to false. Do not provide `last_update`; RoleMap sets it
 when a row is inserted or updated.
@@ -222,7 +222,7 @@ ROLEMAP_RESUME_RESULT_HTML
 
 ## Keep Descriptions Source-Backed
 
-RoleMap works best when `description` contains the original job posting text
+RoleMap works best when `job_description` contains the original job posting text
 instead of generated summaries.
 
 Preview backfills for older generated or email-summary descriptions:

@@ -189,7 +189,7 @@ def _format_job_description(row: JobRow) -> str:
         ("Salary range", _row_text(row, "salary_range")),
     ]
     header = "\n".join(f"{label}: {value}" for label, value in fields if value)
-    return f"{header}\n\nDescription:\n{_row_text(row, 'description')}\n"
+    return f"{header}\n\nDescription:\n{_row_text(row, 'job_description')}\n"
 
 
 def _format_prompt(row: JobRow) -> str:
@@ -197,7 +197,7 @@ def _format_prompt(row: JobRow) -> str:
         "Please generate the resume for this job:\n"
         f"Company: {_row_text(row, 'company_name')}\n"
         f"Title: {_row_text(row, 'job_title')}\n"
-        f"Description: {_row_text(row, 'description')}\n"
+        f"Description: {_row_text(row, 'job_description')}\n"
     )
 
 

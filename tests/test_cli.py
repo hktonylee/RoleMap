@@ -37,7 +37,7 @@ class ListJobsCliTest(unittest.TestCase):
                 publish_date="2026-05-24",
                 job_title="Staff Engineer",
                 company_name="Example Systems",
-                description="Build internal tools.",
+                job_description="Build internal tools.",
                 url="https://example.com/jobs/staff",
                 salary_range="$180k-$220k",
             )
@@ -97,7 +97,7 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
                 publish_date="2026-05-24",
                 job_title="Staff Engineer",
                 company_name="Example Systems",
-                description="Source: LinkedIn Job Alert email. Email subject: Staff Engineer.",
+                job_description="Source: LinkedIn Job Alert email. Email subject: Staff Engineer.",
                 url="https://example.com/jobs/staff",
                 salary_range="$180k-$220k",
             )
@@ -107,7 +107,7 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
                 publish_date="2026-05-24",
                 job_title="Backend Engineer",
                 company_name="Manual Systems",
-                description="This is already the full source job description.",
+                job_description="This is already the full source job description.",
                 url="https://example.com/jobs/backend",
                 salary_range="",
             )
@@ -117,7 +117,7 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
                 publish_date="2026-05-24",
                 job_title="Frontend Engineer",
                 company_name="Search Result Systems",
-                description="Source: Indeed job alert email. Email subject: Frontend Engineer.",
+                job_description="Source: Indeed job alert email. Email subject: Frontend Engineer.",
                 url="https://ca.indeed.com/jobs?l=remote&q=frontend",
                 salary_range="",
             )
@@ -153,15 +153,15 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
         )
         self.assertIn("Backfilled 1 descriptions", stderr.getvalue())
         self.assertEqual(
-            self.repository.get(generated_id)["description"],
+            self.repository.get(generated_id)["job_description"],
             "Full source job description from the company website.",
         )
         self.assertEqual(
-            self.repository.get(manual_id)["description"],
+            self.repository.get(manual_id)["job_description"],
             "This is already the full source job description.",
         )
         self.assertEqual(
-            self.repository.get(search_page_id)["description"],
+            self.repository.get(search_page_id)["job_description"],
             "Source: Indeed job alert email. Email subject: Frontend Engineer.",
         )
 
@@ -171,7 +171,7 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
                 publish_date="2026-05-24",
                 job_title="Backend Engineer",
                 company_name="Example Systems",
-                description=(
+                job_description=(
                     "Skip to main content\n\n"
                     "Expand search\n\n"
                     "Report this job\n\n"
@@ -198,7 +198,7 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
         self.assertEqual(stdout.getvalue().strip(), str(job_id))
         self.assertEqual(stderr.getvalue().strip(), "Cleaned 1 descriptions")
         self.assertEqual(
-            self.repository.get(job_id)["description"],
+            self.repository.get(job_id)["job_description"],
             "Overview\n\nBuild reliable services.",
         )
 
@@ -255,7 +255,7 @@ class BackfillSalariesCliTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Senior Full Stack Engineer",
                 company_name="Total Life",
-                description=(
+                job_description=(
                     "Build healthcare integrations.\n\n"
                     "What We Offer\n\n"
                     "Salary: $120,000 – $150,000 CAD, commensurate with experience"
@@ -288,7 +288,7 @@ class BackfillSalariesCliTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Software Engineer",
                 company_name="Example Systems",
-                description="Source: Indeed job alert email.",
+                job_description="Source: Indeed job alert email.",
                 url="https://ca.indeed.com/viewjob?jk=61b27402bd23ef5f",
                 salary_range="",
             )
@@ -324,7 +324,7 @@ class BackfillSalariesCliTest(unittest.TestCase):
                 publish_date="2026-05-18",
                 job_title="Software Engineer (Backend)",
                 company_name="Kabam",
-                description="Source: Indeed job alert email. Email subject: Kabam is hiring.",
+                job_description="Source: Indeed job alert email. Email subject: Kabam is hiring.",
                 url="https://www.glassdoor.ca/partner/jobListing.htm?jobListingId=1010136759800",
                 salary_range="",
             )

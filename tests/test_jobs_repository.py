@@ -29,7 +29,7 @@ class JobRepositoryTest(unittest.TestCase):
                 "publish_date",
                 "job_title",
                 "company_name",
-                "description",
+                "job_description",
                 "url",
                 "salary_range",
                 "is_starred",
@@ -38,6 +38,7 @@ class JobRepositoryTest(unittest.TestCase):
                 "last_update",
             },
         )
+        self.assertNotIn("description", columns)
 
     def test_add_job_writes_fields_and_local_timestamps(self) -> None:
         job_id = self.repository.add_or_update(
@@ -45,7 +46,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Senior Software Engineer",
                 company_name="Example Systems",
-                description="Build internal systems and tooling.",
+                job_description="Build internal systems and tooling.",
                 url="https://example.com/jobs/123",
                 salary_range="$150k-$190k",
             )
@@ -57,7 +58,7 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(row["publish_date"], "2026-05-20")
         self.assertEqual(row["job_title"], "Senior Software Engineer")
         self.assertEqual(row["company_name"], "Example Systems")
-        self.assertEqual(row["description"], "Build internal systems and tooling.")
+        self.assertEqual(row["job_description"], "Build internal systems and tooling.")
         self.assertEqual(row["url"], "https://example.com/jobs/123")
         self.assertEqual(row["salary_range"], "$150k-$190k")
         self.assertEqual(row["is_starred"], 0)
@@ -72,7 +73,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Senior Software Engineer",
                 company_name="Example Systems",
-                description="Build internal systems and tooling.",
+                job_description="Build internal systems and tooling.",
                 url="https://example.com/jobs/123",
                 salary_range="$150k-$190k",
             )
@@ -91,7 +92,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Senior Software Engineer",
                 company_name="Example Systems",
-                description="Build internal systems and tooling.",
+                job_description="Build internal systems and tooling.",
                 url="https://example.com/jobs/123",
                 salary_range="$150k-$190k",
             )
@@ -110,7 +111,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Active Engineer",
                 company_name="Example Systems",
-                description="Build active systems.",
+                job_description="Build active systems.",
             )
         )
         expired_id = self.repository.add_or_update(
@@ -118,7 +119,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-21",
                 job_title="Expired Engineer",
                 company_name="Example Systems",
-                description="Build expired systems.",
+                job_description="Build expired systems.",
                 is_expired=True,
             )
         )
@@ -127,7 +128,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-22",
                 job_title="Pruned Engineer",
                 company_name="Example Systems",
-                description="Build pruned systems.",
+                job_description="Build pruned systems.",
                 is_expired=True,
                 is_pruned=True,
             )
@@ -146,7 +147,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Backend Engineer",
                 company_name="Example Systems",
-                description="Original description.",
+                job_description="Original description.",
                 url="https://example.com/jobs/456",
                 salary_range="$140k-$170k",
             )
@@ -156,7 +157,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-21",
                 job_title="Backend Engineer, Platform",
                 company_name="Example Systems",
-                description="Updated description with platform ownership.",
+                job_description="Updated description with platform ownership.",
                 url="https://example.com/jobs/456",
                 salary_range="$145k-$175k",
             )
@@ -168,7 +169,7 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["publish_date"], "2026-05-21")
         self.assertEqual(rows[0]["job_title"], "Backend Engineer, Platform")
-        self.assertIn("platform ownership", rows[0]["description"])
+        self.assertIn("platform ownership", rows[0]["job_description"])
 
     def test_list_orders_by_publish_date_desc_then_job_id_desc(self) -> None:
         oldest_id = self.repository.add_or_update(
@@ -176,7 +177,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Old Engineer",
                 company_name="Old Systems",
-                description="Build old systems.",
+                job_description="Build old systems.",
             )
         )
         newest_first_id = self.repository.add_or_update(
@@ -184,7 +185,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="First New Engineer",
                 company_name="New Systems",
-                description="Build new systems.",
+                job_description="Build new systems.",
             )
         )
         newest_second_id = self.repository.add_or_update(
@@ -192,7 +193,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Second New Engineer",
                 company_name="New Systems",
-                description="Build newer systems.",
+                job_description="Build newer systems.",
             )
         )
         self.connection.execute(
@@ -214,7 +215,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Active Old Engineer",
                 company_name="Example Systems",
-                description="Build active old systems.",
+                job_description="Build active old systems.",
             )
         )
         expired_new_id = self.repository.add_or_update(
@@ -222,7 +223,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Expired New Engineer",
                 company_name="Example Systems",
-                description="Build expired new systems.",
+                job_description="Build expired new systems.",
                 is_expired=True,
             )
         )
@@ -231,7 +232,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-22",
                 job_title="Active New Engineer",
                 company_name="Example Systems",
-                description="Build active new systems.",
+                job_description="Build active new systems.",
             )
         )
         expired_old_id = self.repository.add_or_update(
@@ -239,7 +240,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-21",
                 job_title="Expired Old Engineer",
                 company_name="Example Systems",
-                description="Build expired old systems.",
+                job_description="Build expired old systems.",
                 is_expired=True,
             )
         )
@@ -257,7 +258,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Old Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
             )
         )
         newest_first_id = self.repository.add_or_update(
@@ -265,7 +266,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="First New Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
             )
         )
         newest_second_id = self.repository.add_or_update(
@@ -273,7 +274,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Second New Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
             )
         )
         self.connection.execute(
@@ -295,7 +296,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Active Old Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
             )
         )
         expired_new_id = self.repository.add_or_update(
@@ -303,7 +304,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Expired New Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
                 is_expired=True,
             )
         )
@@ -312,7 +313,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-22",
                 job_title="Active New Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
             )
         )
         expired_old_id = self.repository.add_or_update(
@@ -320,7 +321,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-21",
                 job_title="Expired Old Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
                 is_expired=True,
             )
         )
@@ -338,7 +339,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-22",
                 job_title="Active Engineer",
                 company_name="Example Systems",
-                description="Build active systems.",
+                job_description="Build active systems.",
             )
         )
         self.repository.add_or_update(
@@ -346,7 +347,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Pruned Engineer",
                 company_name="Example Systems",
-                description="Build pruned systems.",
+                job_description="Build pruned systems.",
                 is_pruned=True,
             )
         )
@@ -361,7 +362,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-22",
                 job_title="Active Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
             )
         )
         self.repository.add_or_update(
@@ -369,7 +370,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-25",
                 job_title="Pruned Engineer",
                 company_name="Example Systems",
-                description="Build shared systems.",
+                job_description="Build shared systems.",
                 is_pruned=True,
             )
         )
@@ -384,7 +385,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-20",
                 job_title="Infrastructure Engineer",
                 company_name="Northstar",
-                description="Own deployment automation.",
+                job_description="Own deployment automation.",
                 url="https://northstar.example/jobs/infra",
                 salary_range="$160k-$200k",
             )
@@ -394,7 +395,7 @@ class JobRepositoryTest(unittest.TestCase):
                 publish_date="2026-05-22",
                 job_title="Product Engineer",
                 company_name="Southline",
-                description="Build customer-facing workflows.",
+                job_description="Build customer-facing workflows.",
                 url="https://southline.example/jobs/product",
                 salary_range="$120k-$150k",
             )
@@ -420,7 +421,7 @@ class JobRepositoryTest(unittest.TestCase):
                     publish_date="2026-05-20",
                     job_title="",
                     company_name="Example Systems",
-                    description="Build things.",
+                    job_description="Build things.",
                     url="https://example.com/jobs/789",
                     salary_range="",
                 )
@@ -433,7 +434,7 @@ class JobRepositoryTest(unittest.TestCase):
                     publish_date="2026-05-24",
                     job_title="Application and Product Security Principal",
                     company_name="Global Relay",
-                    description="Source: Indeed job alert email.",
+                    job_description="Source: Indeed job alert email.",
                     url="https://mail.google.com/mail/#all/19e5a1eac3590391",
                     salary_range="$125,000 - $160,000 a year",
                 )
@@ -503,7 +504,64 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertEqual(row["is_starred"], 0)
         self.assertEqual(row["is_expired"], 0)
         self.assertEqual(row["is_pruned"], 0)
-        self.assertEqual(version, 4)
+        self.assertEqual(version, 5)
+
+    def test_initialize_database_renames_existing_description_column(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "rolemap.sqlite3")
+            self.addCleanup(connection.close)
+            connection.executescript(
+                """
+                CREATE TABLE jobs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    publish_date TEXT,
+                    job_title TEXT NOT NULL,
+                    company_name TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    url TEXT UNIQUE,
+                    salary_range TEXT,
+                    is_starred INTEGER NOT NULL DEFAULT 0,
+                    is_expired INTEGER NOT NULL DEFAULT 0,
+                    is_pruned INTEGER NOT NULL DEFAULT 0,
+                    last_update TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                INSERT INTO jobs (
+                    publish_date,
+                    job_title,
+                    company_name,
+                    description,
+                    url,
+                    salary_range,
+                    last_update,
+                    created_at
+                )
+                VALUES (
+                    '2026-05-20',
+                    'Senior Software Engineer',
+                    'Example Systems',
+                    'Build internal systems and tooling.',
+                    'https://example.com/jobs/123',
+                    '$150k-$190k',
+                    '2026-05-24T12:20:01-07:00',
+                    '2026-05-24T12:20:01-07:00'
+                );
+                PRAGMA user_version = 4;
+                """
+            )
+
+            initialize_database(connection)
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+            }
+            row = connection.execute(
+                "SELECT job_description FROM jobs"
+            ).fetchone()
+
+        self.assertIn("job_description", columns)
+        self.assertNotIn("description", columns)
+        self.assertEqual(row["job_description"], "Build internal systems and tooling.")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ Build a local, SQLite-centered RoleMap system for storing and browsing job descr
 
 ## Requirements
 
-- Store jobs in SQLite with at least: publish date, job title, company name, description, URL, salary range, expired flag, and last local update time.
+- Store jobs in SQLite with at least: publish date, job title, company name, job_description, URL, salary range, expired flag, and last local update time.
 - Provide a Codex skill that tells Codex how to add a job description from external sources such as email, company sites, or pasted JD text.
 - Provide an interactive terminal UI with a filterable fzf-like job list and a details viewer.
 - Keep the implementation dependency-light and local-first.
@@ -31,7 +31,7 @@ The `jobs` table uses a stable integer primary key and stores source data as tex
 - `publish_date`
 - `job_title`
 - `company_name`
-- `description`
+- `job_description`
 - `url`
 - `salary_range`
 - `is_expired`
@@ -53,13 +53,13 @@ CLI commands:
 - `rolemap show-job ID`
 - `rolemap tui`
 
-The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed, struck through, and sorted after active rows. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
+The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and job_description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed, struck through, and sorted after active rows. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
 
 ## Error Handling
 
-Validation rejects missing title, company, description, and malformed empty JSON. Database setup is idempotent. CLI errors should be short and actionable, returning a non-zero exit code. The TUI should tolerate an empty database and show an empty list instead of crashing.
+Validation rejects missing title, company, job_description, and malformed empty JSON. Database setup is idempotent. CLI errors should be short and actionable, returning a non-zero exit code. The TUI should tolerate an empty database and show an empty list instead of crashing.
 
-`description` should contain source-backed job posting text, not agent-generated summaries. Backfill replaces generated-looking descriptions with text pulled from the stored source URL; by default it only touches descriptions that start with `Source: ` so manually curated full descriptions are preserved.
+`job_description` should contain source-backed job posting text, not agent-generated summaries. Backfill replaces generated-looking descriptions with text pulled from the stored source URL; by default it only touches descriptions that start with `Source: ` so manually curated full descriptions are preserved.
 
 Source extraction should remove non-JD site chrome where possible. The cleaner strips known LinkedIn navigation, search, sign-in, pay-range widget, and footer text while preserving the actual job/company/role sections.
 
@@ -72,5 +72,5 @@ Initial tests cover:
 - Adding the same URL updates the existing row instead of duplicating it.
 - Backfilling generated descriptions updates the row from source URL text without overwriting manual full descriptions by default.
 - Cleaning descriptions removes known source-site chrome from already-stored descriptions.
-- Search returns jobs across title, company, description, URL, salary, and publish date.
+- Search returns jobs across title, company, job_description, URL, salary, and publish date.
 - The Codex skill document exists and names the required add-job workflow.

@@ -21,7 +21,7 @@ class JobInput:
     publish_date: str = ""
     job_title: str = ""
     company_name: str = ""
-    description: str = ""
+    job_description: str = ""
     url: str = ""
     salary_range: str = ""
     is_starred: bool | None = None
@@ -34,7 +34,7 @@ class JobInput:
             publish_date=_text(data.get("publish_date")),
             job_title=_text(data.get("job_title")),
             company_name=_text(data.get("company_name")),
-            description=_text(data.get("description")),
+            job_description=_text(data.get("job_description")),
             url=_text(data.get("url")),
             salary_range=_text(data.get("salary_range")),
             is_starred=_optional_bool(data.get("is_starred"), "is_starred"),
@@ -59,7 +59,7 @@ class JobRepository:
                     publish_date,
                     job_title,
                     company_name,
-                    description,
+                    job_description,
                     url,
                     salary_range,
                     is_starred,
@@ -74,7 +74,7 @@ class JobRepository:
                     validated.publish_date,
                     validated.job_title,
                     validated.company_name,
-                    validated.description,
+                    validated.job_description,
                     _nullable(validated.url),
                     validated.salary_range,
                     _stored_bool(validated.is_starred),
@@ -95,7 +95,7 @@ class JobRepository:
             SET publish_date = ?,
                 job_title = ?,
                 company_name = ?,
-                description = ?,
+                job_description = ?,
                 url = ?,
                 salary_range = ?,
                 is_starred = COALESCE(?, is_starred),
@@ -108,7 +108,7 @@ class JobRepository:
                 validated.publish_date,
                 validated.job_title,
                 validated.company_name,
-                validated.description,
+                validated.job_description,
                 _nullable(validated.url),
                 validated.salary_range,
                 _stored_optional_bool(validated.is_starred),
@@ -180,12 +180,12 @@ class JobRepository:
     def update_description(self, job_id: int, description: str) -> None:
         normalized = description.strip()
         if not normalized:
-            raise ValueError("description must not be empty")
+            raise ValueError("job_description must not be empty")
 
         cursor = self.connection.execute(
             """
             UPDATE jobs
-            SET description = ?,
+            SET job_description = ?,
                 last_update = ?
             WHERE id = ?
             """,
@@ -239,7 +239,7 @@ class JobRepository:
                     publish_date LIKE ? COLLATE NOCASE
                     OR job_title LIKE ? COLLATE NOCASE
                     OR company_name LIKE ? COLLATE NOCASE
-                    OR description LIKE ? COLLATE NOCASE
+                    OR job_description LIKE ? COLLATE NOCASE
                     OR url LIKE ? COLLATE NOCASE
                     OR salary_range LIKE ? COLLATE NOCASE
                   )
@@ -266,7 +266,7 @@ def _validate(job: JobInput) -> JobInput:
         publish_date=job.publish_date.strip(),
         job_title=job.job_title.strip(),
         company_name=job.company_name.strip(),
-        description=job.description.strip(),
+        job_description=job.job_description.strip(),
         url=job.url.strip(),
         salary_range=job.salary_range.strip(),
         is_starred=job.is_starred,
@@ -278,7 +278,7 @@ def _validate(job: JobInput) -> JobInput:
         for name, value in (
             ("job_title", normalized.job_title),
             ("company_name", normalized.company_name),
-            ("description", normalized.description),
+            ("job_description", normalized.job_description),
         )
         if not value
     ]

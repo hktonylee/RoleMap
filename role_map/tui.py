@@ -323,7 +323,7 @@ def _format_cell(value: object, width: int) -> str:
 def _detail_description_lines(row: JobRow, width: int) -> list[str]:
     lines = []
     wrap_width = min(_DETAIL_DESCRIPTION_WRAP_WIDTH, max(20, width - 2))
-    for paragraph in _row_text(row, "description").splitlines() or [""]:
+    for paragraph in _row_text(row, "job_description").splitlines() or [""]:
         lines.extend(textwrap.wrap(paragraph, width=wrap_width) or [""])
     return lines
 
