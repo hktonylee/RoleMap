@@ -92,7 +92,7 @@ def generate_resume(
     result_html_path = output_dir / DEFAULT_RESULT_FILENAME
     prompt_path = output_dir / "tailoring-prompt.md"
     prompt_path.write_text(
-        _format_prompt(row, template_copy_path, job_description_path, result_html_path),
+        _format_prompt(row),
         encoding="utf-8",
     )
 
@@ -141,12 +141,13 @@ def run_resume_generator(
         ),
     }
     configured_command = env_source.get(GENERATOR_ENV_VAR, "").strip()
-    command = (
-        shlex.split(configured_command)
-        if configured_command
-        else ["codex", "--cd", str(result.output_dir), result.prompt_path.read_text(encoding="utf-8")]
-    )
-    command_runner(command, cwd=result.output_dir, env=run_env, check=True)
+    if configured_command:
+        command = shlex.split(configured_command)
+        cwd = result.output_dir
+    else:
+        cwd = result.template_path.parent.resolve()
+        command = ["codex", "--cd", str(cwd), result.prompt_path.read_text(encoding="utf-8")]
+    command_runner(command, cwd=cwd, env=run_env, check=True)
 
 
 def _resume_output_root(base: Path, environ: Mapping[str, str]) -> Path:
@@ -191,23 +192,12 @@ def _format_job_description(row: JobRow) -> str:
     return f"{header}\n\nDescription:\n{_row_text(row, 'description')}\n"
 
 
-def _format_prompt(
-    row: JobRow,
-    template_copy_path: Path,
-    job_description_path: Path,
-    result_html_path: Path,
-) -> str:
+def _format_prompt(row: JobRow) -> str:
     return (
-        "# Tailor Resume\n\n"
+        "Please generate the resume for this job:\n"
         f"Company: {_row_text(row, 'company_name')}\n"
-        f"Job title: {_row_text(row, 'job_title')}\n"
-        f"Resume template: {template_copy_path}\n"
-        f"Job description: {job_description_path}\n\n"
-        f"Write the final tailored resume HTML to: {result_html_path}\n\n"
-        "Create a tailored resume from the detailed resume template and the job description. "
-        "Use only evidence already present in the template. Keep claims truthful, remove lower-value "
-        "details when necessary, and emphasize the experience most relevant to the role. "
-        "Generate a complete standalone HTML document.\n"
+        f"Title: {_row_text(row, 'job_title')}\n"
+        f"Description: {_row_text(row, 'description')}\n"
     )
 
 

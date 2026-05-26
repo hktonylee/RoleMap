@@ -64,10 +64,13 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertTrue(result.output_dir.name.startswith("42-example-systems-staff-platform-engineer-"))
         self.assertEqual(template_copy, "<html>Detailed resume</html>")
         self.assertIn("Build distributed internal tools.", job_description)
-        self.assertIn("Example Systems", prompt)
-        self.assertIn("Staff Platform Engineer", prompt)
-        self.assertIn(str(result.template_copy_path), prompt)
-        self.assertIn(str(result.result_html_path), prompt)
+        self.assertEqual(
+            prompt,
+            "Please generate the resume for this job:\n"
+            "Company: Example Systems\n"
+            "Title: Staff Platform Engineer\n"
+            "Description: Build distributed internal tools.\n",
+        )
         self.assertEqual(result.result_html_path.name, "tailored-resume.html")
         self.assertFalse(result.command_ran)
 
@@ -133,7 +136,7 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertTrue(result.command_ran)
         self.assertEqual(marker_text, str(result.prompt_path))
 
-    def test_run_resume_generator_defaults_to_interactive_codex_with_result_html_env(self) -> None:
+    def test_run_resume_generator_defaults_to_template_directory_with_job_prompt(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             template = root / "templates" / "master.md"
@@ -160,8 +163,15 @@ class ResumeGenerationTest(unittest.TestCase):
         command, kwargs = calls[0]
         self.assertEqual(command[0], "codex")
         self.assertEqual(command[1], "--cd")
-        self.assertEqual(command[2], str(result.output_dir))
-        self.assertIn(str(result.result_html_path), command[3])
+        self.assertEqual(command[2], str(template.parent))
+        self.assertEqual(kwargs["cwd"], template.parent)
+        self.assertEqual(
+            command[3],
+            "Please generate the resume for this job:\n"
+            "Company: Acme Labs\n"
+            "Title: Backend Engineer\n"
+            "Description: Build APIs.\n",
+        )
         self.assertEqual(kwargs["env"]["ROLEMAP_RESUME_RESULT_HTML"], str(result.result_html_path))
 
 
