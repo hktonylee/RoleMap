@@ -46,7 +46,7 @@ CLI commands:
 
 - `rolemap init`
 - `rolemap add-job --json FILE`
-- `rolemap add-job --title ... --company ... --description ...`
+- `rolemap add-job --title ... --company ... --job-description ...`
 - `rolemap backfill-descriptions [--dry-run] [--overwrite]`
 - `rolemap clean-descriptions [--dry-run]`
 - `rolemap list-jobs`

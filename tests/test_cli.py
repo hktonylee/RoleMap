@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from role_map.cli import (
+    _build_parser,
     _format_job,
     _handle_add_job,
     _handle_backfill_descriptions,
@@ -212,18 +213,49 @@ class AddJobSalaryExtractionTest(unittest.TestCase):
         initialize_database(self.connection)
         self.repository = JobRepository(self.connection)
 
-    def test_add_job_extracts_missing_indeed_salary_from_description(self) -> None:
+    def test_add_job_accepts_job_description_argument(self) -> None:
+        parser = _build_parser()
+        parsed = parser.parse_args(
+            [
+                "add-job",
+                "--title",
+                "Full Stack Developer",
+                "--company",
+                "Example Systems",
+                "--job-description",
+                "Build systems.",
+            ]
+        )
+
+        self.assertEqual(parsed.job_description, "Build systems.")
+        with (
+            patch.object(sys, "stderr", io.StringIO()),
+            self.assertRaises(SystemExit),
+        ):
+            parser.parse_args(
+                [
+                    "add-job",
+                    "--title",
+                    "Full Stack Developer",
+                    "--company",
+                    "Example Systems",
+                    "--description",
+                    "Build systems.",
+                ]
+            )
+
+    def test_add_job_extracts_missing_indeed_salary_from_job_description(self) -> None:
         args = argparse.Namespace(
             json=None,
             publish_date="2026-05-25",
             job_title="Full Stack Developer",
             company_name="Example Systems",
-            description=(
+            job_description=(
                 "Build AI-enabled internal products.\n\n"
                 "Job Types: Full-time, Permanent\n\n"
                 "Pay: $70,000.00-$80,000.00 per year"
             ),
-            description_file="",
+            job_description_file="",
             url="https://ca.indeed.com/viewjob?jk=a85f6585460cb5c0",
             salary_range="",
         )

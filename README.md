@@ -63,7 +63,7 @@ rolemap add-job \
   --publish-date 2026-05-20 \
   --title "Senior Software Engineer" \
   --company "Example Systems" \
-  --description "Full job description text..." \
+  --job-description "Full job description text..." \
   --url "https://example.com/jobs/123" \
   --salary-range '$150k-$190k'
 ```
@@ -128,7 +128,7 @@ Add a job from a text file:
 rolemap add-job \
   --title "Staff Platform Engineer" \
   --company "Example Systems" \
-  --description-file /tmp/job-description.txt \
+  --job-description-file /tmp/job-description.txt \
   --url "https://example.com/jobs/platform-engineer"
 ```
 
@@ -266,7 +266,7 @@ and footer text while preserving job, company, and role sections.
 ```text
 rolemap init
 rolemap add-job --json FILE
-rolemap add-job --title ... --company ... --description ...
+rolemap add-job --title ... --company ... --job-description ...
 rolemap list-jobs [--query TEXT]
 rolemap show-job ID
 rolemap backfill-descriptions [--dry-run] [--overwrite]

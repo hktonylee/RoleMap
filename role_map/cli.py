@@ -52,8 +52,8 @@ def _build_parser() -> argparse.ArgumentParser:
     add_parser.add_argument("--publish-date", default="")
     add_parser.add_argument("--title", dest="job_title", default="")
     add_parser.add_argument("--company", dest="company_name", default="")
-    add_parser.add_argument("--description", default="")
-    add_parser.add_argument("--description-file", default="")
+    add_parser.add_argument("--job-description", default="")
+    add_parser.add_argument("--job-description-file", default="")
     add_parser.add_argument("--url", default="")
     add_parser.add_argument("--salary-range", default="")
     add_parser.set_defaults(handler=_handle_add_job)
@@ -299,9 +299,9 @@ def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
             raise ValueError("JSON input must be an object or an array of objects")
         return [_with_extracted_salary(JobInput.from_mapping(item)) for item in items]
 
-    description = args.description
-    if args.description_file:
-        description = Path(args.description_file).read_text(encoding="utf-8")
+    job_description = args.job_description
+    if args.job_description_file:
+        job_description = Path(args.job_description_file).read_text(encoding="utf-8")
 
     return [
         _with_extracted_salary(
@@ -309,7 +309,7 @@ def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
                 publish_date=args.publish_date,
                 job_title=args.job_title,
                 company_name=args.company_name,
-                job_description=description,
+                job_description=job_description,
                 url=args.url,
                 salary_range=args.salary_range,
             )
