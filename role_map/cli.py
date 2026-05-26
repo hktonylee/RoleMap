@@ -18,7 +18,7 @@ from role_map.job_sources import (
 from role_map.jobs import JobInput, JobRepository
 
 
-DEFAULT_DB_PATH = Path("data") / "rolemap.sqlite3"
+DEFAULT_DB_PATH = Path.home() / ".local" / "state" / "rolemap" / "rolemap.sqlite3"
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -1,6 +1,7 @@
 import tomllib
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from role_map.cli import DEFAULT_DB_PATH, _build_parser, _database_path
 from role_map.resumes import GENERATOR_ENV_VAR
@@ -23,10 +24,12 @@ class ProjectIdentityTest(unittest.TestCase):
 
     def test_cli_uses_rolemap_names_for_prog_error_db_and_env(self) -> None:
         parser = _build_parser()
+        default_db_path = Path.home() / ".local" / "state" / "rolemap" / "rolemap.sqlite3"
 
         self.assertEqual(parser.prog, "rolemap")
-        self.assertEqual(DEFAULT_DB_PATH, Path("data") / "rolemap.sqlite3")
-        self.assertEqual(_database_path(None), Path("data") / "rolemap.sqlite3")
+        self.assertEqual(DEFAULT_DB_PATH, default_db_path)
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(_database_path(None), default_db_path)
         self.assertEqual(GENERATOR_ENV_VAR, "ROLEMAP_RESUME_GENERATOR")
 
 

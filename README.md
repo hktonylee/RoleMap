@@ -87,7 +87,7 @@ rolemap show-job 1
 By default, RoleMap writes to:
 
 ```text
-data/rolemap.sqlite3
+~/.local/state/rolemap/rolemap.sqlite3
 ```
 
 Use another database with either `--db` or `ROLEMAP_DB`:
