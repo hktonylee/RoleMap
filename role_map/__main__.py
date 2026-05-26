@@ -1,4 +1,4 @@
-from rolemap.cli import main
+from role_map.cli import main
 
 
 if __name__ == "__main__":

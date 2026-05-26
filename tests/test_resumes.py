@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from rolemap.resumes import discover_templates, generate_resume, run_resume_generator
+from role_map.resumes import discover_templates, generate_resume, run_resume_generator
 
 
 class ResumeTemplateDiscoveryTest(unittest.TestCase):

@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from rolemap.db import connect, initialize_database
-from rolemap.jobs import JobInput, JobRepository
+from role_map.db import connect, initialize_database
+from role_map.jobs import JobInput, JobRepository
 
 
 class JobRepositoryTest(unittest.TestCase):

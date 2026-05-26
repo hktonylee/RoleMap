@@ -5,8 +5,8 @@ import subprocess
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import rolemap.tui as tui
-from rolemap.tui import (
+import role_map.tui as tui
+from role_map.tui import (
     _JobBrowser,
     _format_list_header,
     _format_list_row,

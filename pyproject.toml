@@ -10,8 +10,8 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
-rolemap = "rolemap.cli:main"
+rolemap = "role_map.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["rolemap*"]
+include = ["role_map*"]

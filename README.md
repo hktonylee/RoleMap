@@ -22,7 +22,7 @@ Run commands from the repository root.
 Use the module directly:
 
 ```bash
-python -m rolemap --help
+python -m role_map --help
 ```
 
 Or install the console script in editable mode:
@@ -41,8 +41,8 @@ data/rolemap.sqlite3
 Use another database with either `--db` or `ROLEMAP_DB`:
 
 ```bash
-python -m rolemap --db /tmp/rolemap.sqlite3 init
-ROLEMAP_DB=/tmp/rolemap.sqlite3 python -m rolemap list-jobs
+python -m role_map --db /tmp/rolemap.sqlite3 init
+ROLEMAP_DB=/tmp/rolemap.sqlite3 python -m role_map list-jobs
 ```
 
 ## Quick Start
@@ -50,13 +50,13 @@ ROLEMAP_DB=/tmp/rolemap.sqlite3 python -m rolemap list-jobs
 Initialize the database:
 
 ```bash
-python -m rolemap init
+python -m role_map init
 ```
 
 Add a job from command-line fields:
 
 ```bash
-python -m rolemap add-job \
+python -m role_map add-job \
   --publish-date 2026-05-20 \
   --title "Senior Software Engineer" \
   --company "Example Systems" \
@@ -68,7 +68,7 @@ python -m rolemap add-job \
 Add a job from a description file:
 
 ```bash
-python -m rolemap add-job \
+python -m role_map add-job \
   --title "Staff Platform Engineer" \
   --company "Example Systems" \
   --description-file /tmp/job-description.txt \
@@ -78,19 +78,19 @@ python -m rolemap add-job \
 List saved jobs:
 
 ```bash
-python -m rolemap list-jobs
+python -m role_map list-jobs
 ```
 
 Show one job in detail:
 
 ```bash
-python -m rolemap show-job 1
+python -m role_map show-job 1
 ```
 
 Open the terminal UI:
 
 ```bash
-python -m rolemap tui
+python -m role_map tui
 ```
 
 `list-jobs` also opens the interactive list when stdin and stdout are both terminals. When output is redirected or piped, it prints tab-separated rows with `id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`, `is_expired`, and `last_update`.
@@ -113,7 +113,7 @@ python -m rolemap tui
 Import one file:
 
 ```bash
-python -m rolemap add-job --json job.json
+python -m role_map add-job --json job.json
 ```
 
 Import several jobs from one JSON array:
@@ -148,13 +148,13 @@ If a URL is present, importing the same URL again updates the existing row and r
 Search from the CLI:
 
 ```bash
-python -m rolemap list-jobs --query "platform"
+python -m role_map list-jobs --query "platform"
 ```
 
 Pipe tab-separated rows into another command:
 
 ```bash
-python -m rolemap list-jobs --query "remote" > /tmp/jobs.tsv
+python -m role_map list-jobs --query "remote" > /tmp/jobs.tsv
 ```
 
 In the terminal UI:
@@ -209,26 +209,26 @@ Keep `description` source-backed: store the original job posting text instead of
 Preview backfills for older generated or email-summary descriptions:
 
 ```bash
-python -m rolemap backfill-descriptions --dry-run
+python -m role_map backfill-descriptions --dry-run
 ```
 
 Apply the backfill:
 
 ```bash
-python -m rolemap backfill-descriptions
+python -m role_map backfill-descriptions
 ```
 
 Overwrite existing full descriptions when you intentionally want to refetch them from source URLs:
 
 ```bash
-python -m rolemap backfill-descriptions --overwrite
+python -m role_map backfill-descriptions --overwrite
 ```
 
 Clean already-stored source text that contains known site chrome:
 
 ```bash
-python -m rolemap clean-descriptions --dry-run
-python -m rolemap clean-descriptions
+python -m role_map clean-descriptions --dry-run
+python -m role_map clean-descriptions
 ```
 
 The current cleaner handles known LinkedIn search, sign-in, pay-range widget, and footer text while preserving the job/company/role sections.
@@ -236,11 +236,11 @@ The current cleaner handles known LinkedIn search, sign-in, pay-range widget, an
 ## Repository Layout
 
 ```text
-rolemap/db.py          SQLite connection and schema setup
-rolemap/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
-rolemap/job_sources.py Job-posting fetch, extraction, and cleanup helpers
-rolemap/cli.py         Command-line interface
-rolemap/tui.py         curses-based job browser
+role_map/db.py          SQLite connection and schema setup
+role_map/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
+role_map/job_sources.py Job-posting fetch, extraction, and cleanup helpers
+role_map/cli.py         Command-line interface
+role_map/tui.py         curses-based job browser
 codex-skills/            Project-local Codex workflows
 docs/specs/              Design notes
 tests/                   Unit tests

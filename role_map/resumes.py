@@ -10,7 +10,7 @@ import shlex
 import shutil
 import subprocess
 
-from rolemap.jobs import JobRow
+from role_map.jobs import JobRow
 
 
 TEMPLATE_DIRECTORIES = ("resume_templates", "templates")

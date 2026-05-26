@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from rolemap.cli import (
+from role_map.cli import (
     _format_job,
     _handle_add_job,
     _handle_backfill_descriptions,
@@ -14,9 +14,9 @@ from rolemap.cli import (
     _handle_clean_descriptions,
     _handle_list_jobs,
 )
-from rolemap.job_sources import SourceJob
-from rolemap.db import connect, initialize_database
-from rolemap.jobs import JobInput, JobRepository
+from role_map.job_sources import SourceJob
+from role_map.db import connect, initialize_database
+from role_map.jobs import JobInput, JobRepository
 
 
 class _TtyStringIO(io.StringIO):
@@ -49,7 +49,7 @@ class ListJobsCliTest(unittest.TestCase):
         with (
             patch.object(sys, "stdin", _TtyStringIO()),
             patch.object(sys, "stdout", _TtyStringIO()),
-            patch("rolemap.tui.run") as run,
+            patch("role_map.tui.run") as run,
         ):
             exit_code = _handle_list_jobs(args, self.repository)
 
@@ -128,7 +128,7 @@ class BackfillDescriptionsCliTest(unittest.TestCase):
 
         with (
             patch(
-                "rolemap.cli.fetch_source_job",
+                "role_map.cli.fetch_source_job",
                 return_value=SourceJob(
                     description="Full source job description from the company website.",
                     salary_range="",
@@ -294,7 +294,7 @@ class BackfillSalariesCliTest(unittest.TestCase):
 
         with (
             patch(
-                "rolemap.cli.fetch_source_job",
+                "role_map.cli.fetch_source_job",
                 return_value=SourceJob(
                     description="Full source job description.",
                     salary_range="$125,000-$160,000 CAD",
@@ -336,7 +336,7 @@ class BackfillSalariesCliTest(unittest.TestCase):
 
         with (
             patch(
-                "rolemap.cli.fetch_source_job",
+                "role_map.cli.fetch_source_job",
                 return_value=SourceJob(
                     description="Full source job description.",
                     salary_range="CA$95,000-CA$120,000 a year",

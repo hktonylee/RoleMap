@@ -9,13 +9,13 @@ import sys
 from typing import Sequence
 from urllib.parse import urlparse
 
-from rolemap.db import connect, initialize_database
-from rolemap.job_sources import (
+from role_map.db import connect, initialize_database
+from role_map.job_sources import (
     clean_source_description,
     extract_salary_range,
     fetch_source_job,
 )
-from rolemap.jobs import JobInput, JobRepository
+from role_map.jobs import JobInput, JobRepository
 
 
 DEFAULT_DB_PATH = Path("data") / "rolemap.sqlite3"
@@ -122,7 +122,7 @@ def _handle_add_job(args: argparse.Namespace, repository: JobRepository) -> int:
 
 def _handle_list_jobs(args: argparse.Namespace, repository: JobRepository) -> int:
     if _should_use_interactive_list():
-        from rolemap.tui import run
+        from role_map.tui import run
 
         run(repository, initial_query=args.query)
         return 0
@@ -277,7 +277,7 @@ def _clean_descriptions(args: argparse.Namespace, repository: JobRepository) -> 
 
 def _handle_tui(args: argparse.Namespace, repository: JobRepository) -> int:
     del args
-    from rolemap.tui import run
+    from role_map.tui import run
 
     run(repository)
     return 0

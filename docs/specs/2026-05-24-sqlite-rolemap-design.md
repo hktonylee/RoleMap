@@ -14,14 +14,14 @@ Build a local, SQLite-centered RoleMap system for storing and browsing job descr
 
 ## Architecture
 
-- `rolemap.db`: owns SQLite connection setup, schema creation, and migrations.
-- `rolemap.jobs`: owns the `JobInput` data shape, validation, upsert/add behavior, and read queries.
-- `rolemap.job_sources`: fetches job posting URLs and extracts source-backed job description text, preferring structured `JobPosting` data when available.
-- `rolemap.cli`: exposes scriptable commands for importing jobs, listing jobs, showing details, and launching the TUI.
-- `rolemap.tui`: owns curses-based interactive browsing only; it calls the repository instead of touching SQL directly.
+- `role_map.db`: owns SQLite connection setup, schema creation, and migrations.
+- `role_map.jobs`: owns the `JobInput` data shape, validation, upsert/add behavior, and read queries.
+- `role_map.job_sources`: fetches job posting URLs and extracts source-backed job description text, preferring structured `JobPosting` data when available.
+- `role_map.cli`: exposes scriptable commands for importing jobs, listing jobs, showing details, and launching the TUI.
+- `role_map.tui`: owns curses-based interactive browsing only; it calls the repository instead of touching SQL directly.
 - `codex-skills/add-job-description/SKILL.md`: project skill for Codex agents adding job descriptions.
 
-This keeps storage, domain rules, and UI separate. Resume generation can later depend on `rolemap.jobs` and add its own module without coupling to curses or CLI parsing. A web UI can do the same.
+This keeps storage, domain rules, and UI separate. Resume generation can later depend on `role_map.jobs` and add its own module without coupling to curses or CLI parsing. A web UI can do the same.
 
 ## Database
 

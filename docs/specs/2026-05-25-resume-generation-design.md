@@ -15,9 +15,9 @@ Add a local-first resume generation flow to the job details view. A user keeps d
 
 ## Architecture
 
-- `rolemap.resumes`: owns template discovery, output path naming, prompt creation, and optional command execution.
-- `rolemap.tui`: owns only interaction state: details view, template picker, and status messages.
-- `rolemap.cli`: keeps existing job commands unchanged for now; the first entry point is the TUI because the request centers on the job details page.
+- `role_map.resumes`: owns template discovery, output path naming, prompt creation, and optional command execution.
+- `role_map.tui`: owns only interaction state: details view, template picker, and status messages.
+- `role_map.cli`: keeps existing job commands unchanged for now; the first entry point is the TUI because the request centers on the job details page.
 
 The generator command receives environment variables instead of hardcoded provider logic:
 
@@ -33,9 +33,9 @@ This keeps RoleMap independent from any one AI backend while still making the ba
 ## Data Flow
 
 1. Detail screen receives `G`.
-2. TUI asks `rolemap.resumes` for available templates.
+2. TUI asks `role_map.resumes` for available templates.
 3. User selects a template.
-4. `rolemap.resumes.generate_resume()` creates `generated/resumes/<job-id>-<company>-<title>-<timestamp>/`.
+4. `role_map.resumes.generate_resume()` creates `generated/resumes/<job-id>-<company>-<title>-<timestamp>/`.
 5. The module writes `job-description.txt`, `tailoring-prompt.md`, and a copy of the chosen template.
 6. The prompt instructs the generator to write `tailored-resume.html` in the output directory.
 7. RoleMap suspends curses and launches the visible generator command, defaulting to interactive `codex`.
