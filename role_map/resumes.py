@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 
 from role_map.jobs import JobRow
@@ -19,66 +18,27 @@ OUTPUT_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_OUTPUT_DIR"
 
 
 @dataclass(frozen=True)
-class ResumeTemplate:
-    path: Path
-    display_name: str
-
-
-@dataclass(frozen=True)
 class ResumeGenerationResult:
     output_dir: Path
-    template_path: Path
-    template_copy_path: Path
+    instruction_dir: Path
     job_description_path: Path
     prompt_path: Path
     result_html_path: Path
     command_ran: bool
 
 
-def discover_templates(root: str | Path = ".") -> list[ResumeTemplate]:
-    base = Path(root)
-    configured_directory = os.environ.get(TEMPLATE_DIRECTORY_ENV_VAR, "").strip()
-    if not configured_directory:
-        return []
-    directory = Path(configured_directory)
-    if not directory.is_absolute():
-        directory = base / directory
-    if not directory.is_dir():
-        return []
-
-    templates: list[ResumeTemplate] = []
-    for path in sorted(directory.rglob("*")):
-        relative_path = path.relative_to(directory)
-        if path.is_file() and not _has_hidden_part(relative_path):
-            templates.append(
-                ResumeTemplate(
-                    path=path,
-                    display_name=relative_path.as_posix(),
-                )
-            )
-    return sorted(templates, key=lambda template: template.display_name.casefold())
-
-
 def generate_resume(
     row: JobRow,
-    template: ResumeTemplate | str | Path,
     *,
     root: str | Path = ".",
     environ: Mapping[str, str] | None = None,
 ) -> ResumeGenerationResult:
     base = Path(root)
     env_source = dict(os.environ if environ is None else environ)
-    source_template = _template_path(template)
-    if not source_template.is_absolute():
-        source_template = base / source_template
-    if not source_template.is_file():
-        raise FileNotFoundError(f"resume template not found: {source_template}")
+    instruction_dir = _instruction_directory(base, env_source)
 
     output_dir = _next_output_dir(_resume_output_root(base, env_source), row)
     output_dir.mkdir(parents=True, exist_ok=False)
-
-    template_copy_path = output_dir / source_template.name
-    shutil.copy2(source_template, template_copy_path)
 
     job_description_path = output_dir / "job-description.txt"
     job_description_path.write_text(_format_job_description(row), encoding="utf-8")
@@ -92,8 +52,7 @@ def generate_resume(
 
     return ResumeGenerationResult(
         output_dir=output_dir,
-        template_path=source_template,
-        template_copy_path=template_copy_path,
+        instruction_dir=instruction_dir,
         job_description_path=job_description_path,
         prompt_path=prompt_path,
         result_html_path=result_html_path,
@@ -112,10 +71,10 @@ def run_resume_generator(
         **_without_resume_environment(env_source),
         **_result_environment(
             output_dir=result.output_dir,
-            source_template=result.template_path,
+            instruction_dir=result.instruction_dir,
         ),
     }
-    cwd = result.template_path.parent.resolve()
+    cwd = result.instruction_dir.resolve()
     command = ["codex", "--cd", str(cwd), result.prompt_path.read_text(encoding="utf-8")]
     command_runner(command, cwd=cwd, env=run_env, check=True)
 
@@ -182,18 +141,29 @@ def _format_prompt(row: JobRow) -> str:
 def _result_environment(
     *,
     output_dir: Path,
-    source_template: Path,
+    instruction_dir: Path,
 ) -> dict[str, str]:
     return {
-        TEMPLATE_DIRECTORY_ENV_VAR: str(source_template.parent),
+        TEMPLATE_DIRECTORY_ENV_VAR: str(instruction_dir),
         "ROLEMAP_RESUME_OUTPUT_DIR": str(output_dir),
     }
 
 
-def _template_path(template: ResumeTemplate | str | Path) -> Path:
-    if isinstance(template, ResumeTemplate):
-        return template.path
-    return Path(template)
+def _instruction_directory(
+    base: Path,
+    environ: Mapping[str, str],
+) -> Path:
+    configured_directory = environ.get(TEMPLATE_DIRECTORY_ENV_VAR, "").strip()
+    if not configured_directory:
+        raise FileNotFoundError(
+            f"resume instruction directory not configured: set {TEMPLATE_DIRECTORY_ENV_VAR}"
+        )
+    instruction_dir = Path(configured_directory)
+    if not instruction_dir.is_absolute():
+        instruction_dir = base / instruction_dir
+    if not instruction_dir.is_dir():
+        raise FileNotFoundError(f"resume instruction directory not found: {instruction_dir}")
+    return instruction_dir
 
 
 def _row_text(row: JobRow, key: str) -> str:
@@ -209,7 +179,3 @@ def _row_text(row: JobRow, key: str) -> str:
 def _slug(value: str) -> str:
     text = re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
     return text[:80]
-
-
-def _has_hidden_part(path: Path) -> bool:
-    return any(part.startswith(".") for part in path.parts)

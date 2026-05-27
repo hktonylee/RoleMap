@@ -905,26 +905,40 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             -1,
         )
 
-    def test_g_key_opens_template_selection_from_detail_view(self) -> None:
+    def test_g_key_runs_resume_generation_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
         browser.mode = "detail"
+        row = {
+            "id": 42,
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "job_description": "Build systems.",
+        }
+        generated: list[object] = []
+        terminal_sessions = []
+        result = SimpleNamespace(
+            output_dir="/tmp/generated/resume",
+            result_html_path="/tmp/generated/resume/tailored-resume.html",
+        )
 
         should_quit = browser._handle_detail_key(
             ord("G"),
-            {
-                "id": 42,
-                "company_name": "Example Systems",
-                "job_title": "Staff Engineer",
-                "job_description": "Build systems.",
-            },
-            templates=[object()],
+            row,
+            generate=lambda job: generated.append(job) or result,
+            run_generator=lambda generation_result: terminal_sessions.append(generation_result),
+            show_terminal=lambda operation: operation(),
         )
 
         self.assertFalse(should_quit)
-        self.assertEqual(browser.mode, "template")
-        self.assertEqual(browser.template_selected, 0)
+        self.assertEqual(generated, [row])
+        self.assertEqual(terminal_sessions, [result])
+        self.assertEqual(browser.mode, "detail")
+        self.assertIn(
+            "Resume HTML: /tmp/generated/resume/tailored-resume.html",
+            browser.status_message,
+        )
 
-    def test_g_key_stays_on_detail_view_when_no_templates_exist(self) -> None:
+    def test_g_key_reports_resume_generation_failure(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
         browser.mode = "detail"
 
@@ -936,13 +950,12 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 "job_title": "Staff Engineer",
                 "job_description": "Build systems.",
             },
-            templates=[],
+            generate=lambda job: (_ for _ in ()).throw(FileNotFoundError("missing AGENTS.md")),
         )
 
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
-        self.assertIn("No resume templates found", browser.status_message)
-        self.assertIn("Set ROLEMAP_RESUME_TEMPLATE_DIR", browser.status_message)
+        self.assertIn("Resume generation failed: missing AGENTS.md", browser.status_message)
 
     def test_enter_key_opens_job_url_with_browser_environment_variable(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
@@ -1094,40 +1107,6 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
         self.assertFalse(should_quit)
         self.assertEqual(launched_commands, [])
-
-    def test_template_selection_runs_resume_generation(self) -> None:
-        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
-        template = object()
-        row = {
-            "id": 42,
-            "company_name": "Example Systems",
-            "job_title": "Staff Engineer",
-            "job_description": "Build systems.",
-        }
-        browser.mode = "template"
-        browser.template_templates = [template]
-        browser.template_job = row
-        generated: list[tuple[object, object]] = []
-        terminal_sessions = []
-        result = SimpleNamespace(
-            output_dir="/tmp/generated/resume",
-            result_html_path="/tmp/generated/resume/tailored-resume.html",
-        )
-
-        should_quit = browser._handle_template_key(
-            curses.KEY_ENTER,
-            generate=lambda job, selected_template: (
-                generated.append((job, selected_template)) or result
-            ),
-            run_generator=lambda generation_result: terminal_sessions.append(generation_result),
-            show_terminal=lambda operation: operation(),
-        )
-
-        self.assertFalse(should_quit)
-        self.assertEqual(generated, [(row, template)])
-        self.assertEqual(terminal_sessions, [result])
-        self.assertEqual(browser.mode, "detail")
-        self.assertIn("Resume HTML: /tmp/generated/resume/tailored-resume.html", browser.status_message)
 
     def test_detail_basic_info_stays_visible_while_description_scrolls(self) -> None:
         screen = RecordingScreen()

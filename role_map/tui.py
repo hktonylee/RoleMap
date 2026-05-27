@@ -10,13 +10,7 @@ import textwrap
 from collections.abc import Callable, Sequence
 
 from role_map.jobs import JobRepository, JobRow
-from role_map.resumes import (
-    ResumeTemplate,
-    TEMPLATE_DIRECTORY_ENV_VAR,
-    discover_templates,
-    generate_resume,
-    run_resume_generator,
-)
+from role_map.resumes import generate_resume, run_resume_generator
 
 
 _COLUMN_GAP = "  "
@@ -350,9 +344,6 @@ class _JobBrowser:
         self.detail_job_id: int | None = None
         self.status_message = ""
         self.prune_confirmation_pending = False
-        self.template_templates: list[ResumeTemplate] = []
-        self.template_selected = 0
-        self.template_job: JobRow | None = None
         self.list_rows: list[JobRow] | None = None
         self.selected_row_id: object | None = None
 
@@ -380,8 +371,6 @@ class _JobBrowser:
                 row = rows[self.selected] if rows else None
                 if self._handle_detail_key(key, row):
                     return
-            elif self.mode == "template" and self._handle_template_key(key):
-                return
 
     def _current_rows(self) -> list[JobRow]:
         if self.mode == "list" and self.list_rows is not None:
@@ -425,9 +414,7 @@ class _JobBrowser:
 
     def _draw(self, rows: Sequence[JobRow]) -> None:
         self.stdscr.erase()
-        if self.mode == "template":
-            self._draw_template_selector()
-        elif self.mode == "detail" and rows:
+        if self.mode == "detail" and rows:
             self._draw_detail(rows[self.selected])
         elif self.mode == "sort":
             self._draw_sort_selector()
@@ -529,21 +516,6 @@ class _JobBrowser:
         ]
         for index, line in enumerate(visible, start=_DETAIL_DESCRIPTION_START_ROW):
             self._add_line(index, 0, _detail_text(row, line), width, detail_attrs)
-        self._draw_status_message()
-
-    def _draw_template_selector(self) -> None:
-        height, width = self.stdscr.getmaxyx()
-        self._add_line(0, 0, "Choose resume template", width, curses.A_BOLD)
-        self._add_shortcut_help_line(
-            1,
-            0,
-            "Enter generate  Esc/q/Left cancel  Up/Down move",
-            width,
-        )
-        for index, template in enumerate(self.template_templates[: max(0, height - 4)]):
-            marker = ">" if index == self.template_selected else " "
-            attrs = curses.A_REVERSE if index == self.template_selected else curses.A_NORMAL
-            self._add_line(index + 4, 0, f"{marker} {template.display_name}", width, attrs)
         self._draw_status_message()
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
@@ -648,8 +620,10 @@ class _JobBrowser:
         self,
         key: int,
         row: JobRow | None = None,
-        templates: Sequence[ResumeTemplate] | None = None,
         opener: Callable[[list[str]], object] | None = None,
+        generate=generate_resume,
+        run_generator=run_resume_generator,
+        show_terminal=None,
     ) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
@@ -671,15 +645,15 @@ class _JobBrowser:
                 self.detail_job_id = job_id
             return False
         if key in (ord("G"), ord("g")) and row is not None:
-            available_templates = list(discover_templates() if templates is None else templates)
-            if not available_templates:
-                self.status_message = f"No resume templates found. Set {TEMPLATE_DIRECTORY_ENV_VAR}."
-                return False
-            self.template_templates = available_templates
-            self.template_selected = 0
-            self.template_job = row
-            self.status_message = ""
-            self.mode = "template"
+            try:
+                result = generate(row)
+                terminal = self._show_terminal if show_terminal is None else show_terminal
+                terminal(lambda: run_generator(result))
+            except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+                self.status_message = f"Resume generation failed: {exc}"
+            else:
+                self.status_message = f"Resume HTML: {result.result_html_path}"
+            self.mode = "detail"
             return False
         height, width = self.stdscr.getmaxyx()
         visible_height = max(0, height - _DETAIL_DESCRIPTION_START_ROW)
@@ -759,46 +733,6 @@ class _JobBrowser:
                 self.status_message = f"Open URL failed: exit {returncode}"
             else:
                 self.status_message = f"Opened URL: {url}"
-
-    def _handle_template_key(
-        self,
-        key: int,
-        generate=generate_resume,
-        run_generator=run_resume_generator,
-        show_terminal=None,
-    ) -> bool:
-        if key in (ord("q"), 27, curses.KEY_LEFT):
-            self.mode = "detail"
-            return False
-        if key == curses.KEY_DOWN:
-            self.template_selected = min(
-                self.template_selected + 1,
-                max(0, len(self.template_templates) - 1),
-            )
-            return False
-        if key == curses.KEY_UP:
-            self.template_selected = max(0, self.template_selected - 1)
-            return False
-        if key not in (curses.KEY_ENTER, 10, 13):
-            return False
-        if self.template_job is None or not self.template_templates:
-            self.status_message = "No resume template selected."
-            self.mode = "detail"
-            return False
-
-        try:
-            result = generate(
-                self.template_job,
-                self.template_templates[self.template_selected],
-            )
-            terminal = self._show_terminal if show_terminal is None else show_terminal
-            terminal(lambda: run_generator(result))
-        except (OSError, subprocess.CalledProcessError, ValueError) as exc:
-            self.status_message = f"Resume generation failed: {exc}"
-        else:
-            self.status_message = f"Resume HTML: {result.result_html_path}"
-        self.mode = "detail"
-        return False
 
     def _show_terminal(self, operation):
         curses.def_prog_mode()

@@ -19,8 +19,8 @@ that matter.
   short summaries.
 - Duplicate-aware: importing the same URL updates the existing job instead of
   creating clutter.
-- Resume-ready: open a saved role, choose a resume template, and prepare a
-  tailored generation run.
+- Resume-ready: open a saved role and prepare a tailored generation run from
+  template-directory instructions.
 - Agent-friendly: includes a project-local Codex skill for adding job
   descriptions consistently.
 
@@ -185,13 +185,13 @@ the full source-backed description, and let RoleMap upsert duplicates by URL.
 
 ## Resume Generation
 
-Put detailed master resume files in the directory configured by:
+Put resume instructions, such as `AGENTS.md`, in the directory configured by:
 
 ```text
 ROLEMAP_RESUME_TEMPLATE_DIR
 ```
 
-From a job detail view in the TUI, press `G`, choose a template, and press Enter.
+From a job detail view in the TUI, press `G`.
 RoleMap creates a job-specific directory under:
 
 ```text
@@ -200,7 +200,6 @@ generated/resumes/
 
 Each run contains:
 
-- a copy of the selected resume template
 - `job-description.txt`
 - `tailoring-prompt.md`
 - `tailored-resume.html`, written by the generator
@@ -279,7 +278,7 @@ with `id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`,
 role_map/db.py          SQLite connection and schema setup
 role_map/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
 role_map/job_sources.py Job-posting fetch, extraction, and cleanup helpers
-role_map/resumes.py     Resume template discovery, prompt creation, and generator execution
+role_map/resumes.py     Resume instruction setup, prompt creation, and generator execution
 role_map/cli.py         Command-line interface
 role_map/tui.py         curses-based job browser
 codex-skills/           Project-local Codex workflows
