@@ -494,7 +494,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
         self.assertEqual(opened_urls, [])
 
-    def test_space_after_entering_detail_toggles_expired_state(self) -> None:
+    def test_backspace_after_entering_detail_toggles_expired_state(self) -> None:
         row = {
             "id": 42,
             "publish_date": "2026-05-24",
@@ -512,15 +512,43 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
             "toggled_id",
             job_id,
         ) or True
-        screen = KeyScreen([curses.KEY_ENTER, ord(" "), 27, ord("q")])
+        screen = KeyScreen([curses.KEY_ENTER, curses.KEY_BACKSPACE, 27, ord("q")])
         browser = _JobBrowser(screen, repository=repository)
 
         with patch("curses.curs_set"):
             browser.run()
 
-        self.assertEqual(repository.toggled_id, 42)
+        self.assertEqual(getattr(repository, "toggled_id", None), 42)
 
-    def test_space_toggles_selected_job_expired_state(self) -> None:
+    def test_backspace_toggles_selected_job_expired_state(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.selected = 1
+        rows = [
+            {"id": 41, "is_expired": 0},
+            {"id": 42, "is_expired": 0},
+        ]
+
+        should_quit = browser._handle_list_key(curses.KEY_BACKSPACE, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.toggled_ids, [42])
+
+    def test_delete_toggles_selected_job_expired_state(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.selected = 1
+        rows = [
+            {"id": 41, "is_expired": 0},
+            {"id": 42, "is_expired": 0},
+        ]
+
+        should_quit = browser._handle_list_key(curses.KEY_DC, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.toggled_ids, [42])
+
+    def test_space_does_not_toggle_selected_job_expired_state(self) -> None:
         repository = ToggleRepository()
         browser = _JobBrowser(FakeScreen(), repository=repository)
         browser.selected = 1
@@ -532,7 +560,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         should_quit = browser._handle_list_key(ord(" "), rows)
 
         self.assertFalse(should_quit)
-        self.assertEqual(repository.toggled_ids, [42])
+        self.assertEqual(repository.toggled_ids, [])
 
     def test_s_toggles_selected_job_starred_state(self) -> None:
         repository = ToggleRepository()
@@ -604,7 +632,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
     def test_toggle_keeps_list_order_until_leaving_list(self) -> None:
         repository = ToggleSearchRepository()
-        screen = KeyScreen([curses.KEY_DOWN, ord(" "), ord("q")])
+        screen = KeyScreen([curses.KEY_DOWN, curses.KEY_BACKSPACE, ord("q")])
         browser = _JobBrowser(screen, repository=repository)
         original_draw_list = browser._draw_list
 
@@ -700,7 +728,27 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.detail_scroll, 0)
 
-    def test_space_toggles_current_job_expired_state_from_detail(self) -> None:
+    def test_backspace_toggles_current_job_expired_state_from_detail(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(curses.KEY_BACKSPACE, {"id": 42})
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.toggled_ids, [42])
+
+    def test_delete_toggles_current_job_expired_state_from_detail(self) -> None:
+        repository = ToggleRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(curses.KEY_DC, {"id": 42})
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.toggled_ids, [42])
+
+    def test_space_does_not_toggle_current_job_expired_state_from_detail(self) -> None:
         repository = ToggleRepository()
         browser = _JobBrowser(FakeScreen(), repository=repository)
         browser.mode = "detail"
@@ -708,7 +756,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         should_quit = browser._handle_detail_key(ord(" "), {"id": 42})
 
         self.assertFalse(should_quit)
-        self.assertEqual(repository.toggled_ids, [42])
+        self.assertEqual(repository.toggled_ids, [])
 
     def test_s_toggles_current_job_starred_state_from_detail(self) -> None:
         repository = ToggleRepository()
@@ -759,7 +807,19 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        for key in ("/", "o", "p", "r", "s", "Enter", "Right", "Esc", "q"):
+        for key in (
+            "/",
+            "Backspace",
+            "Delete",
+            "o",
+            "p",
+            "r",
+            "s",
+            "Enter",
+            "Right",
+            "Esc",
+            "q",
+        ):
             calls = [call for call in screen.calls if call.y == 1 and call.text == key]
             self.assertTrue(calls, key)
             self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)
@@ -784,9 +844,9 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
-        self.assertIn("Enter open URL", screen.lines[1])
+        self.assertIn("Enter URL", screen.lines[1])
         self.assertIn("G resume", screen.lines[1])
-        self.assertIn("Space toggle", screen.lines[1])
+        self.assertIn("Backspace/Delete expire", screen.lines[1])
         self.assertIn("s star", screen.lines[1])
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:

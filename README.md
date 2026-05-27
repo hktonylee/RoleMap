@@ -112,7 +112,7 @@ The TUI is the fastest way to work through saved jobs.
 - Type to filter by publish date, company, title, description, URL, or salary.
 - Press `o` to choose a sort column.
 - Use lowercase sort keys for ascending order and uppercase keys for descending.
-- Press Space to toggle whether the selected job is expired.
+- Press Backspace or Delete to toggle whether the selected job is expired.
 - Press Enter or Right to open details.
 - Press Up, Down, Page Up, Page Down, Home, or End to scroll.
 - Press `G` from a job detail view to prepare a tailored resume generation run.

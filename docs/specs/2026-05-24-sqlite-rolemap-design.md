@@ -53,7 +53,7 @@ CLI commands:
 - `rolemap show-job ID`
 - `rolemap tui`
 
-The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and job_description. Pressing Space toggles the selected job's `is_expired` flag; expired rows are dimmed, struck through, and sorted after active rows. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
+The TUI starts with a searchable list. Typing filters by company, title, URL, salary, publish date, and job_description. Pressing Backspace or Delete toggles the selected job's `is_expired` flag; expired rows are dimmed, struck through, and sorted after active rows. Pressing `o` opens a sort-column selector for the list; lowercase column keys sort ascending, and uppercase keys sort descending. Enter or the right arrow opens a details viewer; Escape, `q`, or the left arrow returns from details; Escape or `q` exits from the list.
 
 ## Error Handling
 

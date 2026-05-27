@@ -33,12 +33,14 @@ _SORT_LABEL_BY_COLUMN = {column: label for _key, column, label in _SORT_COLUMNS}
 _DETAIL_DESCRIPTION_START_ROW = 10
 _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
+_DELETE_KEYS = (curses.KEY_BACKSPACE, curses.KEY_DC, 127, 8)
 _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
 _BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
 _SHORTCUT_HELP_KEYS = (
     "Backspace",
+    "Delete",
     "Down",
     "Enter",
     "Esc",
@@ -48,7 +50,6 @@ _SHORTCUT_HELP_KEYS = (
     "PgDn",
     "PgUp",
     "Right",
-    "Space",
     "Up",
     "o",
     "p",
@@ -444,7 +445,7 @@ class _JobBrowser:
             "Typing search  Enter/Esc done  Backspace delete"
             if self.search_active
             else (
-                "/ search  s star  o sort  p prune  r refresh  Enter/Right  Esc/q"
+                "/ Backspace/Delete expire s o p r Enter/Right Esc/q"
             )
         )
         self._add_shortcut_help_line(
@@ -499,7 +500,7 @@ class _JobBrowser:
         self._add_shortcut_help_line(
             1,
             0,
-            "Esc/q/Left  Space toggle s star  PgUp/PgDn/Home/End  Enter open URL  G resume",
+            "Esc/q/Left Backspace/Delete expire s star PgUp/PgDn/Home/End Enter URL G resume",
             width,
         )
 
@@ -590,7 +591,7 @@ class _JobBrowser:
         if key == ord("o"):
             self.mode = "sort"
             return False
-        if key == ord(" ") and rows:
+        if key in _DELETE_KEYS and rows:
             is_expired = self.repository.toggle_expired(int(rows[self.selected]["id"]))
             self._replace_cached_expired_state(self.selected, is_expired)
             return False
@@ -617,7 +618,7 @@ class _JobBrowser:
         if key in (curses.KEY_ENTER, 10, 13, 27):
             self.search_active = False
             return True
-        if key in (curses.KEY_BACKSPACE, 127, 8):
+        if key in _DELETE_KEYS:
             self.query = self.query[:-1]
             self.selected = 0
             return True
@@ -656,7 +657,7 @@ class _JobBrowser:
         if key in (curses.KEY_ENTER, 10, 13) and row is not None:
             self._open_job_url(row, opener)
             return False
-        if key == ord(" ") and row is not None:
+        if key in _DELETE_KEYS and row is not None:
             job_id = _row_id(row)
             if job_id is not None:
                 self.repository.toggle_expired(job_id)
