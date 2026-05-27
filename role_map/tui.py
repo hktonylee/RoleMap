@@ -25,6 +25,9 @@ _SORT_COLUMNS = (
 )
 _SORT_COLUMN_BY_KEY = {key: column for key, column, _label in _SORT_COLUMNS}
 _SORT_LABEL_BY_COLUMN = {column: label for _key, column, label in _SORT_COLUMNS}
+_SORT_INDEX_BY_COLUMN = {
+    column: index for index, (_key, column, _label) in enumerate(_SORT_COLUMNS)
+}
 _DETAIL_DESCRIPTION_START_ROW = 10
 _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
@@ -340,6 +343,7 @@ class _JobBrowser:
         self.mode = "list"
         self.sort_column: str | None = None
         self.sort_reverse = False
+        self.sort_selection_index = 0
         self.search_active = False
         self.detail_scroll = 0
         self.detail_job_id: int | None = None
@@ -468,12 +472,18 @@ class _JobBrowser:
         self._add_shortcut_help_line(
             1,
             0,
-            "Lowercase asc  Uppercase desc  Esc/q cancel",
+            "Up/Down choose  Enter apply  Lowercase asc  Uppercase desc  Esc/q back",
             width,
         )
         for index, (key, column, label) in enumerate(_SORT_COLUMNS, start=3):
             marker = "*" if column == self.sort_column else " "
-            self._add_line(index, 0, f"{marker} {key}/{key.upper()}  {label}", width)
+            cursor = ">" if index - 3 == self.sort_selection_index else " "
+            self._add_line(
+                index,
+                0,
+                f"{cursor}{marker} {key}/{key.upper()}  {label}",
+                width,
+            )
 
     def _draw_detail(self, row: JobRow) -> None:
         height, width = self.stdscr.getmaxyx()
@@ -562,6 +572,10 @@ class _JobBrowser:
             self.detail_job_id = _row_id(rows[self.selected])
             return False
         if key == ord("o"):
+            self.sort_selection_index = _SORT_INDEX_BY_COLUMN.get(
+                self.sort_column,
+                0,
+            )
             self.mode = "sort"
             return False
         if key in _DELETE_KEYS and rows:
@@ -605,16 +619,47 @@ class _JobBrowser:
         if key in (ord("q"), 27):
             self.mode = "list"
             return False
+        if key in (curses.KEY_ENTER, 10, 13):
+            self.mode = "list"
+            self._clear_list_rows()
+            return False
+        if key == curses.KEY_DOWN:
+            self._sync_sort_selection_index()
+            self.sort_selection_index = min(
+                self.sort_selection_index + 1,
+                len(_SORT_COLUMNS) - 1,
+            )
+            self._set_sort_from_selection()
+            return False
+        if key == curses.KEY_UP:
+            self._sync_sort_selection_index()
+            self.sort_selection_index = max(0, self.sort_selection_index - 1)
+            self._set_sort_from_selection()
+            return False
         typed = chr(key) if 0 <= key <= 255 else ""
         column = _SORT_COLUMN_BY_KEY.get(typed.lower())
         if column is None:
             return False
         self.sort_column = column
+        self.sort_selection_index = _SORT_INDEX_BY_COLUMN[column]
         self.sort_reverse = typed.isupper()
         self.selected = 0
         self.mode = "list"
         self._clear_list_rows()
         return False
+
+    def _set_sort_from_selection(self) -> None:
+        _key, column, _label = _SORT_COLUMNS[self.sort_selection_index]
+        self.sort_column = column
+        self.sort_reverse = False
+        self.selected = 0
+        self._clear_list_rows()
+
+    def _sync_sort_selection_index(self) -> None:
+        self.sort_selection_index = _SORT_INDEX_BY_COLUMN.get(
+            self.sort_column,
+            self.sort_selection_index,
+        )
 
     def _handle_detail_key(
         self,

@@ -398,6 +398,43 @@ class TuiSortingTest(unittest.TestCase):
         self.assertTrue(hasattr(browser, "sort_reverse"))
         self.assertTrue(browser.sort_reverse)
 
+    def test_down_arrow_and_enter_select_sort_column(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "sort"
+
+        should_exit = browser._handle_sort_key(curses.KEY_DOWN)
+
+        self.assertFalse(should_exit)
+        self.assertEqual(browser.mode, "sort")
+        self.assertEqual(browser.sort_column, "company_name")
+
+        should_exit = browser._handle_sort_key(curses.KEY_ENTER)
+
+        self.assertFalse(should_exit)
+        self.assertEqual(browser.mode, "list")
+        self.assertEqual(browser.sort_column, "company_name")
+        self.assertFalse(browser.sort_reverse)
+
+    def test_up_arrow_selects_previous_sort_column(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "sort"
+        browser.sort_column = "job_title"
+
+        should_exit = browser._handle_sort_key(curses.KEY_UP)
+
+        self.assertFalse(should_exit)
+        self.assertEqual(browser.mode, "sort")
+        self.assertEqual(browser.sort_column, "company_name")
+
+    def test_sort_selector_draws_interactive_arrow_hint(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.mode = "sort"
+
+        browser._draw([])
+
+        self.assertIn("Up/Down choose  Enter apply", screen.lines[1])
+
 
 class JobBrowserKeyHandlingTest(unittest.TestCase):
     def test_page_down_and_page_up_move_list_selection_by_visible_page(self) -> None:
