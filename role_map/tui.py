@@ -28,13 +28,14 @@ _SORT_LABEL_BY_COLUMN = {column: label for _key, column, label in _SORT_COLUMNS}
 _DETAIL_DESCRIPTION_START_ROW = 10
 _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
 _STRIKETHROUGH_MARK = "\u0336"
-_DELETE_KEYS = (curses.KEY_BACKSPACE, curses.KEY_DC, 127, 8)
+_BACKSPACE_KEYS = (curses.KEY_BACKSPACE, 127, 8)
+_DELETE_KEYS = (curses.KEY_DC,)
+_SEARCH_DELETE_KEYS = _BACKSPACE_KEYS + _DELETE_KEYS
 _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
 _BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
 _SHORTCUT_HELP_KEYS = (
-    "Backspace",
     "Delete",
     "Down",
     "Enter",
@@ -487,7 +488,7 @@ class _JobBrowser:
         self._add_shortcut_help_line(
             1,
             0,
-            "Esc/q/Left Backspace/Delete expire s star PgUp/PgDn/Home/End Enter URL G resume",
+            "Esc/q/Left Delete expire s star PgUp/PgDn/Home/End Enter URL G resume",
             width,
         )
 
@@ -590,7 +591,7 @@ class _JobBrowser:
         if key in (curses.KEY_ENTER, 10, 13, 27):
             self.search_active = False
             return True
-        if key in _DELETE_KEYS:
+        if key in _SEARCH_DELETE_KEYS:
             self.query = self.query[:-1]
             self.selected = 0
             return True
