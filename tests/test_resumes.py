@@ -1,4 +1,3 @@
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,7 +6,7 @@ from role_map.resumes import generate_resume, run_resume_generator
 
 
 class ResumeGenerationTest(unittest.TestCase):
-    def test_generate_resume_writes_prompt_inputs_without_template_copy(self) -> None:
+    def test_generate_resume_uses_instruction_directory_without_output_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             instruction_dir = root / "templates"
@@ -31,51 +30,17 @@ class ResumeGenerationTest(unittest.TestCase):
                 root=root,
                 environ={"ROLEMAP_RESUME_TEMPLATE_DIR": str(instruction_dir)},
             )
-            job_description = result.job_description_path.read_text(encoding="utf-8")
-            prompt = result.prompt_path.read_text(encoding="utf-8")
 
-        self.assertTrue(
-            result.output_dir.name.startswith("42-example-systems-staff-platform-engineer-")
-        )
-        self.assertEqual(result.instruction_dir, instruction_dir)
-        self.assertIn("Build distributed internal tools.", job_description)
-        self.assertEqual(
-            prompt,
-            "Please generate the resume for this job:\n"
-            "Company: Example Systems\n"
-            "Title: Staff Platform Engineer\n"
-            "Description: Build distributed internal tools.\n",
-        )
-        self.assertEqual(result.result_html_path.name, "tailored-resume.html")
-        self.assertFalse(result.command_ran)
-
-    def test_generate_resume_writes_to_configured_destination_directory(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            instruction_dir = root / "templates"
-            instruction_dir.mkdir()
-            destination = root / "custom_resumes"
-            row = {
-                "id": 42,
-                "company_name": "Example Systems",
-                "job_title": "Staff Platform Engineer",
-                "job_description": "Build distributed internal tools.",
-                "url": "",
-                "salary_range": "",
-                "publish_date": "",
-            }
-
-            result = generate_resume(
-                row,
-                root=root,
-                environ={
-                    "ROLEMAP_RESUME_OUTPUT_DIR": str(destination),
-                    "ROLEMAP_RESUME_TEMPLATE_DIR": str(instruction_dir),
-                },
+            self.assertEqual(result.instruction_dir, instruction_dir)
+            self.assertEqual(
+                result.prompt,
+                "Please generate the resume for this job:\n"
+                "Company: Example Systems\n"
+                "Title: Staff Platform Engineer\n"
+                "Description: Build distributed internal tools.\n",
             )
-
-        self.assertEqual(result.output_dir.parent, destination)
-        self.assertEqual(result.instruction_dir, instruction_dir)
+            self.assertFalse((root / "generated").exists())
+            self.assertFalse(result.command_ran)
 
     def test_run_resume_generator_defaults_to_instruction_directory_with_job_prompt(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -127,10 +92,7 @@ class ResumeGenerationTest(unittest.TestCase):
         }
         self.assertEqual(
             resume_env,
-            {
-                "ROLEMAP_RESUME_TEMPLATE_DIR": str(result.instruction_dir),
-                "ROLEMAP_RESUME_OUTPUT_DIR": str(result.output_dir),
-            },
+            {"ROLEMAP_RESUME_TEMPLATE_DIR": str(result.instruction_dir)},
         )
 
 

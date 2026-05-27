@@ -702,7 +702,7 @@ class _JobBrowser:
             except (OSError, subprocess.CalledProcessError, ValueError) as exc:
                 self.status_message = f"Resume generation failed: {exc}"
             else:
-                self.status_message = f"Resume HTML: {result.result_html_path}"
+                self.status_message = "Resume generation finished"
             self.mode = "detail"
             return False
         height, width = self.stdscr.getmaxyx()

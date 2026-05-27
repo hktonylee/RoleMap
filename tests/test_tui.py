@@ -1025,10 +1025,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         }
         generated: list[object] = []
         terminal_sessions = []
-        result = SimpleNamespace(
-            output_dir="/tmp/generated/resume",
-            result_html_path="/tmp/generated/resume/tailored-resume.html",
-        )
+        result = SimpleNamespace()
 
         should_quit = browser._handle_detail_key(
             ord("G"),
@@ -1042,10 +1039,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertEqual(generated, [row])
         self.assertEqual(terminal_sessions, [result])
         self.assertEqual(browser.mode, "detail")
-        self.assertIn(
-            "Resume HTML: /tmp/generated/resume/tailored-resume.html",
-            browser.status_message,
-        )
+        self.assertEqual(browser.status_message, "Resume generation finished")
 
     def test_g_key_reports_resume_generation_failure(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())

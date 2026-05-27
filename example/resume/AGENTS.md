@@ -16,10 +16,10 @@ description, keep the result printable, and avoid inventing experience.
 - Keep the tailored resume printable within 2 pages unless the prompt gives a
   different target.
 - Remove unrelated or redundant details before cutting relevant experience.
-- Write the updated HTML in `ROLEMAP_RESUME_OUTPUT_DIR` as
+- Write the updated HTML in this directory as
   `<YYYY-MM-DD>-<Company Name>.html`, using the run date and company name from
   the prompt.
-- Also create a matching PDF in `ROLEMAP_RESUME_OUTPUT_DIR` named
+- Also create a matching PDF in this directory named
   `<YYYY-MM-DD>-<Company Name>.pdf`.
 - Keep the output focused on the requested job. Do not add extra artifacts
   unless requested.
