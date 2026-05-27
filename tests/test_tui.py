@@ -848,8 +848,8 @@ class JobBrowserListViewTest(unittest.TestCase):
         browser._draw_list([])
 
         self.assertNotIn("Sort:", screen.lines.get(0, ""))
-        self.assertIn("o Sort (Job Title)", screen.lines[1])
-        self.assertNotIn("Sort:", screen.lines[1])
+        self.assertIn("o Sort (Job Title)", screen.lines[0])
+        self.assertNotIn("Sort:", screen.lines[0])
 
     def test_list_draws_default_sort_state_in_sort_shortcut(self) -> None:
         screen = WideRecordingScreen()
@@ -857,8 +857,17 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        self.assertIn("o Sort (Default)", screen.lines[1])
-        self.assertNotIn("Sort:", screen.lines[1])
+        self.assertIn("o Sort (Default)", screen.lines[0])
+        self.assertNotIn("Sort:", screen.lines[0])
+
+    def test_list_starts_shortcut_bar_on_top_row(self) -> None:
+        screen = WideRecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_list([])
+
+        self.assertIn("/ Search", screen.lines.get(0, ""))
+        self.assertNotIn(0, [call.y for call in screen.calls if not call.text])
 
     def test_active_search_replaces_shortcut_bar(self) -> None:
         screen = RecordingScreen()
@@ -868,20 +877,20 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        self.assertEqual(screen.lines[1], "Search: remote_")
-        self.assertNotIn("Typing search", screen.lines[1])
+        self.assertEqual(screen.lines[0], "Search: remote_")
+        self.assertNotIn("Typing search", screen.lines[0])
 
     def test_list_draws_next_page_when_selection_moves_beyond_visible_rows(self) -> None:
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())
-        browser.selected = 20
+        browser.selected = 21
 
-        browser._draw_list([_row(index) for index in range(25)])
+        browser._draw_list([_row(index) for index in range(26)])
 
         rendered = "\n".join(screen.lines.values())
         self.assertTrue(
             any(
-                line.startswith("> 2026-05-24") and "Company 20" in line
+                line.startswith("> 2026-05-24") and "Company 21" in line
                 for line in screen.lines.values()
             )
         )
@@ -905,7 +914,7 @@ class JobBrowserListViewTest(unittest.TestCase):
             "Esc",
             "q",
         ):
-            calls = [call for call in screen.calls if call.y == 1 and call.text == key]
+            calls = [call for call in screen.calls if call.y == 0 and call.text == key]
             self.assertTrue(calls, key)
             self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)
 
@@ -915,13 +924,13 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        self.assertIn("/ Search", screen.lines[1])
-        self.assertIn("Delete Expire", screen.lines[1])
-        self.assertIn("s Star", screen.lines[1])
-        self.assertIn("o Sort (Default)", screen.lines[1])
-        self.assertIn("p Prune", screen.lines[1])
-        self.assertIn("r Refresh", screen.lines[1])
-        self.assertNotIn("Backspace/Delete expire", screen.lines[1])
+        self.assertIn("/ Search", screen.lines[0])
+        self.assertIn("Delete Expire", screen.lines[0])
+        self.assertIn("s Star", screen.lines[0])
+        self.assertIn("o Sort (Default)", screen.lines[0])
+        self.assertIn("p Prune", screen.lines[0])
+        self.assertIn("r Refresh", screen.lines[0])
+        self.assertNotIn("Backspace/Delete expire", screen.lines[0])
 
 
 class JobBrowserDetailViewTest(unittest.TestCase):

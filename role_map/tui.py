@@ -434,10 +434,10 @@ class _JobBrowser:
             sort_label = f"{sort_label} desc"
         sort_shortcut_label = sort_label.title()
         if self.search_active:
-            self._add_line(1, 0, f"Search: {self.query}_", width, curses.A_BOLD)
+            self._add_line(0, 0, f"Search: {self.query}_", width, curses.A_BOLD)
         else:
             self._add_shortcut_help_line(
-                1,
+                0,
                 0,
                 (
                     "/ Search  Delete Expire  s Star  "
@@ -448,14 +448,14 @@ class _JobBrowser:
             )
 
         if not rows:
-            self._add_line(3, 0, "No jobs found.", width)
+            self._add_line(2, 0, "No jobs found.", width)
             self._draw_status_message()
             return
 
         widths = _list_column_widths(width)
-        self._add_line(3, 0, _format_list_header(widths), width, curses.A_BOLD)
+        self._add_line(2, 0, _format_list_header(widths), width, curses.A_BOLD)
 
-        visible_count = max(0, height - 4)
+        visible_count = max(0, height - 3)
         page_start = (
             (self.selected // visible_count) * visible_count if visible_count else 0
         )
@@ -463,7 +463,7 @@ class _JobBrowser:
         for index, row in enumerate(visible_rows, start=page_start):
             line = _format_list_row(row, widths, selected=index == self.selected)
             attrs = _list_row_attrs(row, selected=index == self.selected)
-            self._add_line(index - page_start + 4, 0, line, width, attrs)
+            self._add_line(index - page_start + 3, 0, line, width, attrs)
         self._draw_status_message()
 
     def _draw_sort_selector(self) -> None:
