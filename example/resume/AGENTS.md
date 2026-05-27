@@ -1,19 +1,27 @@
 # Demo Resume Instructions
 
 This file demonstrates how to place template-local agent instructions inside a
-resume template directory. When RoleMap starts a Codex session from this folder,
-the agent should follow these instructions while generating a resume.
+resume template directory. It is modeled after a personal resume workflow:
+start from the most complete source resume, tailor it to the pasted job
+description, keep the result printable, and avoid inventing experience.
 
 ## General Structure
 
-- Use resume files in this directory as source material.
-- Tailor the resume to the job details in the prompt: company, title, and
+- Treat `Resume.html` as the most detailed source resume for this example.
+- Tailor the resume to the job details in the prompt: company, title, and job
   description.
 - Prefer exact wording from the source resume when it already matches the job.
-- Remove unrelated or redundant details when the resume needs to fit a target
-  page count.
+- Update, extract, and refine mainly the experience and project details to fit
+  the job description.
+- Keep the tailored resume printable within 2 pages unless the prompt gives a
+  different target.
+- Remove unrelated or redundant details before cutting relevant experience.
+- Write the updated HTML to the output path requested by RoleMap, usually
+  `tailored-resume.html`.
 - Keep the output focused on the requested job. Do not add extra artifacts
   unless requested.
+- If the workflow produces a PDF, open it for user inspection when the
+  environment allows.
 
 ## Important
 
