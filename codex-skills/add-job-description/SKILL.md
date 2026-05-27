@@ -26,7 +26,7 @@ Do not provide `last_update`; RoleMap sets `last_update` locally when `rolemap a
 
 1. Extract the best available job data from the source.
 2. If a job posting URL is available, pull the description from the source website rather than writing a generated description.
-3. Preserve the full source job description text in `job_description`.
+3. Preserve the full source job description text in `job_description`. Do not invent the description. Copy 100% from the job site.
 4. Use an empty string for unknown optional fields such as `publish_date`, `url`, or `salary_range`.
 5. Write a temporary JSON object with the required field names.
 6. Run:
