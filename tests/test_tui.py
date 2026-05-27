@@ -64,6 +64,11 @@ class NarrowRecordingScreen(RecordingScreen):
         return (24, 20)
 
 
+class WideRecordingScreen(RecordingScreen):
+    def getmaxyx(self) -> tuple[int, int]:
+        return (24, 160)
+
+
 class ToggleRepository:
     def __init__(self) -> None:
         self.toggled_ids: list[int] = []
@@ -785,14 +790,15 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
 
 class JobBrowserListViewTest(unittest.TestCase):
-    def test_list_draws_sort_on_top_line_without_search_bar(self) -> None:
-        screen = RecordingScreen()
+    def test_list_draws_sort_state_in_shortcut_bar(self) -> None:
+        screen = WideRecordingScreen()
         browser = _JobBrowser(screen, repository=object())
+        browser.sort_column = "job_title"
 
         browser._draw_list([])
 
-        self.assertIn("Sort: Default", screen.lines[0])
-        self.assertNotIn("Search:", screen.lines[0])
+        self.assertNotIn("Sort:", screen.lines.get(0, ""))
+        self.assertIn("o Sort (Job Title)  Sort: Job title", screen.lines[1])
 
     def test_active_search_replaces_shortcut_bar(self) -> None:
         screen = RecordingScreen()
@@ -822,14 +828,13 @@ class JobBrowserListViewTest(unittest.TestCase):
         self.assertNotIn("Company 0", rendered)
 
     def test_list_help_highlights_all_shortcut_keys(self) -> None:
-        screen = RecordingScreen()
+        screen = WideRecordingScreen()
         browser = _JobBrowser(screen, repository=object())
 
         browser._draw_list([])
 
         for key in (
             "/",
-            "Backspace",
             "Delete",
             "o",
             "p",
@@ -843,6 +848,20 @@ class JobBrowserListViewTest(unittest.TestCase):
             calls = [call for call in screen.calls if call.y == 1 and call.text == key]
             self.assertTrue(calls, key)
             self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)
+
+    def test_list_help_names_main_shortcuts(self) -> None:
+        screen = WideRecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_list([])
+
+        self.assertIn("/ Search", screen.lines[1])
+        self.assertIn("Delete Expire", screen.lines[1])
+        self.assertIn("s Star", screen.lines[1])
+        self.assertIn("o Sort (Job Title)", screen.lines[1])
+        self.assertIn("p Prune", screen.lines[1])
+        self.assertIn("r Refresh", screen.lines[1])
+        self.assertNotIn("Backspace/Delete expire", screen.lines[1])
 
 
 class JobBrowserDetailViewTest(unittest.TestCase):

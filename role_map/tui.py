@@ -427,14 +427,17 @@ class _JobBrowser:
         sort_label = _SORT_LABEL_BY_COLUMN.get(self.sort_column, "Default")
         if self.sort_column is not None and self.sort_reverse:
             sort_label = f"{sort_label} desc"
-        self._add_line(0, 0, f"Sort: {sort_label}", width)
         if self.search_active:
             self._add_line(1, 0, f"Search: {self.query}_", width, curses.A_BOLD)
         else:
             self._add_shortcut_help_line(
                 1,
                 0,
-                "/ Backspace/Delete expire s o p r Enter/Right Esc/q",
+                (
+                    "/ Search  Delete Expire  s Star  "
+                    f"o Sort (Job Title)  Sort: {sort_label}  "
+                    "p Prune  r Refresh  Enter/Right Esc/q"
+                ),
                 width,
             )
 
