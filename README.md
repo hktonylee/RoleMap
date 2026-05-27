@@ -109,16 +109,21 @@ ROLEMAP_DB=/tmp/rolemap.sqlite3 rolemap list-jobs
 
 The TUI is the fastest way to work through saved jobs.
 
-- Type to filter by publish date, company, title, description, URL, or salary.
+- Press `/` to search by publish date, company, title, description, URL, or
+  salary.
 - Press `o` to choose a sort column.
 - Use lowercase sort keys for ascending order and uppercase keys for descending.
-- Press Backspace or Delete to toggle whether the selected job is expired.
+- Press Delete to toggle whether the selected job is expired.
+- Press `s` to toggle whether the selected job is starred.
+- Press `p` to prune expired jobs after confirmation.
+- Press `r` to refresh the list.
 - Press Enter or Right to open details.
 - Press Up, Down, Page Up, Page Down, Home, or End to scroll.
 - Press `G` from a job detail view to prepare a tailored resume generation run.
 - Press Esc, `q`, or Left to go back or quit.
 
-Expired rows are dimmed, struck through, and sorted after active jobs.
+Expired rows are dimmed, struck through, and sorted after active jobs. Starred
+rows are highlighted, and pruned jobs are hidden from list and search results.
 
 ## Import Jobs
 
@@ -151,10 +156,11 @@ rolemap add-job --json job.json
 
 `add-job --json` also accepts an array of job objects.
 
-RoleMap requires `job_title`, `company_name`, and `job_description`. `publish_date`,
-`url`, and `salary_range` can be empty strings when unknown. `is_expired` is
-optional and defaults to false. Do not provide `last_update`; RoleMap sets it
-when a row is inserted or updated.
+RoleMap requires `job_title`, `company_name`, and `job_description`.
+`publish_date`, `url`, and `salary_range` can be empty strings when unknown.
+`is_starred`, `is_expired`, and `is_pruned` are optional and default to false.
+Do not provide `last_update`; RoleMap sets it when a row is inserted or
+updated.
 
 If a URL is present, importing the same URL again updates the existing row and
 refreshes `last_update`.
