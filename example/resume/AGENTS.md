@@ -16,12 +16,14 @@ description, keep the result printable, and avoid inventing experience.
 - Keep the tailored resume printable within 2 pages unless the prompt gives a
   different target.
 - Remove unrelated or redundant details before cutting relevant experience.
-- Write the updated HTML to the output path requested by RoleMap, usually
-  `tailored-resume.html`.
+- Write the updated HTML in `ROLEMAP_RESUME_OUTPUT_DIR` as
+  `<YYYY-MM-DD>-<Company Name>.html`, using the run date and company name from
+  the prompt.
+- Also create a matching PDF in `ROLEMAP_RESUME_OUTPUT_DIR` named
+  `<YYYY-MM-DD>-<Company Name>.pdf`.
 - Keep the output focused on the requested job. Do not add extra artifacts
   unless requested.
-- If the workflow produces a PDF, open it for user inspection when the
-  environment allows.
+- Open the PDF for user inspection when the environment allows.
 
 ## Important
 
