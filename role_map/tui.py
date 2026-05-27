@@ -542,6 +542,11 @@ class _JobBrowser:
         if self.search_active and self._handle_search_key(key):
             self._clear_list_rows()
             return False
+        if key in _BACKSPACE_KEYS:
+            self.query = self.query[:-1]
+            self.selected = 0
+            self._clear_list_rows()
+            return False
         if key in (ord("q"), 27):
             self._clear_list_rows()
             return True

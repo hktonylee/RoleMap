@@ -477,7 +477,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertEqual(browser.query, "remote")
         self.assertEqual(browser.selected, 2)
 
-    def test_backspace_does_not_change_query_until_search_is_focused(self) -> None:
+    def test_backspace_deletes_last_character_even_when_search_is_not_focused(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.query = "remote"
         browser.selected = 2
@@ -485,8 +485,8 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         should_quit = browser._handle_list_key(curses.KEY_BACKSPACE, [])
 
         self.assertFalse(should_quit)
-        self.assertEqual(browser.query, "remote")
-        self.assertEqual(browser.selected, 2)
+        self.assertEqual(browser.query, "remot")
+        self.assertEqual(browser.selected, 0)
 
     def test_slash_focuses_search_so_o_types_query_instead_of_sorting(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
