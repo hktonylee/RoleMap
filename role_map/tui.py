@@ -424,24 +424,19 @@ class _JobBrowser:
 
     def _draw_list(self, rows: Sequence[JobRow]) -> None:
         height, width = self.stdscr.getmaxyx()
-        search_suffix = "_" if self.search_active else ""
-        self._add_line(0, 0, f"Search: {self.query}{search_suffix}", width, curses.A_BOLD)
         sort_label = _SORT_LABEL_BY_COLUMN.get(self.sort_column, "Default")
         if self.sort_column is not None and self.sort_reverse:
             sort_label = f"{sort_label} desc"
-        help_text = (
-            "Typing search  Enter/Esc done  Backspace delete"
-            if self.search_active
-            else (
-                "/ Backspace/Delete expire s o p r Enter/Right Esc/q"
+        self._add_line(0, 0, f"Sort: {sort_label}", width)
+        if self.search_active:
+            self._add_line(1, 0, f"Search: {self.query}_", width, curses.A_BOLD)
+        else:
+            self._add_shortcut_help_line(
+                1,
+                0,
+                "/ Backspace/Delete expire s o p r Enter/Right Esc/q",
+                width,
             )
-        )
-        self._add_shortcut_help_line(
-            1,
-            0,
-            f"Sort: {sort_label}  {help_text}",
-            width,
-        )
 
         if not rows:
             self._add_line(3, 0, "No jobs found.", width)

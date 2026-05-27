@@ -785,6 +785,26 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
 
 
 class JobBrowserListViewTest(unittest.TestCase):
+    def test_list_draws_sort_on_top_line_without_search_bar(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_list([])
+
+        self.assertIn("Sort: Default", screen.lines[0])
+        self.assertNotIn("Search:", screen.lines[0])
+
+    def test_active_search_replaces_shortcut_bar(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.search_active = True
+        browser.query = "remote"
+
+        browser._draw_list([])
+
+        self.assertEqual(screen.lines[1], "Search: remote_")
+        self.assertNotIn("Typing search", screen.lines[1])
+
     def test_list_draws_next_page_when_selection_moves_beyond_visible_rows(self) -> None:
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())
