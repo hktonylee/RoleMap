@@ -1,26 +1,48 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from role_map.resumes import discover_templates, generate_resume, run_resume_generator
 
 
 class ResumeTemplateDiscoveryTest(unittest.TestCase):
-    def test_discovers_resume_templates_from_supported_directories(self) -> None:
+    def test_discovers_resume_templates_from_environment_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             (root / "templates").mkdir()
             (root / "resume_templates").mkdir()
             (root / "templates" / "master.html").write_text("<html>resume</html>", encoding="utf-8")
             (root / "resume_templates" / "senior.md").write_text("# Resume", encoding="utf-8")
-            (root / "other.txt").write_text("ignored", encoding="utf-8")
+            template_dir = root / "custom_templates"
+            nested_dir = template_dir / "nested"
+            nested_dir.mkdir(parents=True)
+            (template_dir / "master.md").write_text("# Resume", encoding="utf-8")
+            (nested_dir / "senior.html").write_text("<html>resume</html>", encoding="utf-8")
 
-            templates = discover_templates(root)
+            with patch.dict(
+                os.environ,
+                {"ROLEMAP_RESUME_TEMPLATE_DIR": str(template_dir)},
+                clear=True,
+            ):
+                templates = discover_templates(root)
 
         self.assertEqual(
             [template.display_name for template in templates],
-            ["resume_templates/senior.md", "templates/master.html"],
+            ["master.md", "nested/senior.html"],
         )
+
+    def test_does_not_discover_templates_when_environment_directory_is_unset(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "templates").mkdir()
+            (root / "templates" / "master.html").write_text("<html>resume</html>", encoding="utf-8")
+
+            with patch.dict(os.environ, {}, clear=True):
+                templates = discover_templates(root)
+
+        self.assertEqual(templates, [])
 
 
 class ResumeGenerationTest(unittest.TestCase):
@@ -133,7 +155,7 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertEqual(
             resume_env,
             {
-                "ROLEMAP_RESUME_TEMPLATE_DIR": str(result.template_path),
+                "ROLEMAP_RESUME_TEMPLATE_DIR": str(result.template_path.parent),
                 "ROLEMAP_RESUME_OUTPUT_DIR": str(result.output_dir),
             },
         )

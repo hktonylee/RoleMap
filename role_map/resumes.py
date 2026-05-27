@@ -12,9 +12,9 @@ import subprocess
 from role_map.jobs import JobRow
 
 
-TEMPLATE_DIRECTORIES = ("resume_templates", "templates")
 DEFAULT_OUTPUT_ROOT = Path("generated") / "resumes"
 DEFAULT_RESULT_FILENAME = "tailored-resume.html"
+TEMPLATE_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_TEMPLATE_DIR"
 OUTPUT_DIRECTORY_ENV_VAR = "ROLEMAP_RESUME_OUTPUT_DIR"
 
 
@@ -37,22 +37,25 @@ class ResumeGenerationResult:
 
 def discover_templates(root: str | Path = ".") -> list[ResumeTemplate]:
     base = Path(root)
+    configured_directory = os.environ.get(TEMPLATE_DIRECTORY_ENV_VAR, "").strip()
+    if not configured_directory:
+        return []
+    directory = Path(configured_directory)
+    if not directory.is_absolute():
+        directory = base / directory
+    if not directory.is_dir():
+        return []
+
     templates: list[ResumeTemplate] = []
-    template_directories = [
-        (base / directory_name, base) for directory_name in TEMPLATE_DIRECTORIES
-    ]
-    for directory, display_base in template_directories:
-        if not directory.is_dir():
-            continue
-        for path in sorted(directory.rglob("*")):
-            relative_path = path.relative_to(display_base)
-            if path.is_file() and not _has_hidden_part(relative_path):
-                templates.append(
-                    ResumeTemplate(
-                        path=path,
-                        display_name=relative_path.as_posix(),
-                    )
+    for path in sorted(directory.rglob("*")):
+        relative_path = path.relative_to(directory)
+        if path.is_file() and not _has_hidden_part(relative_path):
+            templates.append(
+                ResumeTemplate(
+                    path=path,
+                    display_name=relative_path.as_posix(),
                 )
+            )
     return sorted(templates, key=lambda template: template.display_name.casefold())
 
 
@@ -182,7 +185,7 @@ def _result_environment(
     source_template: Path,
 ) -> dict[str, str]:
     return {
-        "ROLEMAP_RESUME_TEMPLATE_DIR": str(source_template),
+        TEMPLATE_DIRECTORY_ENV_VAR: str(source_template.parent),
         "ROLEMAP_RESUME_OUTPUT_DIR": str(output_dir),
     }
 

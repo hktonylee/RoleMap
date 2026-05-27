@@ -185,11 +185,10 @@ the full source-backed description, and let RoleMap upsert duplicates by URL.
 
 ## Resume Generation
 
-Put detailed master resume files in either:
+Put detailed master resume files in the directory configured by:
 
 ```text
-templates/
-resume_templates/
+ROLEMAP_RESUME_TEMPLATE_DIR
 ```
 
 From a job detail view in the TUI, press `G`, choose a template, and press Enter.
