@@ -798,7 +798,17 @@ class JobBrowserListViewTest(unittest.TestCase):
         browser._draw_list([])
 
         self.assertNotIn("Sort:", screen.lines.get(0, ""))
-        self.assertIn("o Sort (Job Title)  Sort: Job title", screen.lines[1])
+        self.assertIn("o Sort (Job Title)", screen.lines[1])
+        self.assertNotIn("Sort:", screen.lines[1])
+
+    def test_list_draws_default_sort_state_in_sort_shortcut(self) -> None:
+        screen = WideRecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_list([])
+
+        self.assertIn("o Sort (Default)", screen.lines[1])
+        self.assertNotIn("Sort:", screen.lines[1])
 
     def test_active_search_replaces_shortcut_bar(self) -> None:
         screen = RecordingScreen()
@@ -858,7 +868,7 @@ class JobBrowserListViewTest(unittest.TestCase):
         self.assertIn("/ Search", screen.lines[1])
         self.assertIn("Delete Expire", screen.lines[1])
         self.assertIn("s Star", screen.lines[1])
-        self.assertIn("o Sort (Job Title)", screen.lines[1])
+        self.assertIn("o Sort (Default)", screen.lines[1])
         self.assertIn("p Prune", screen.lines[1])
         self.assertIn("r Refresh", screen.lines[1])
         self.assertNotIn("Backspace/Delete expire", screen.lines[1])
