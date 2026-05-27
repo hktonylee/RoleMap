@@ -185,26 +185,35 @@ the full source-backed description, and let RoleMap upsert duplicates by URL.
 
 ## Resume Generation
 
-Put resume instructions, such as `AGENTS.md`, in the directory configured by:
+Configure the resume workspace directory:
 
 ```text
 ROLEMAP_RESUME_TEMPLATE_DIR
 ```
 
-From a job detail view in the TUI, press `G`.
-RoleMap creates a job-specific directory under:
+This directory is not treated as a single static template file. It is the
+working directory for the resume agent. Put the resume source files and
+instructions there, such as `AGENTS.md`, examples, or any files the agent should
+use when creating a tailored resume.
+
+From a job detail view in the TUI, press `G`, choose a resume source from that
+workspace, and press Enter. RoleMap creates a job-specific output directory
+under:
 
 ```text
 generated/resumes/
 ```
 
-Each run contains:
+Each run prepares:
 
+- a copy of the selected resume source
 - `job-description.txt`
 - `tailoring-prompt.md`
 - `tailored-resume.html`, written by the generator
 
-RoleMap then opens `codex` in your terminal.
+RoleMap then opens `codex` in your terminal from the selected source directory.
+Codex reads the workspace instructions and writes the tailored resume into the
+output directory.
 
 The generator receives these environment variables:
 
