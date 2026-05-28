@@ -92,14 +92,14 @@ Keys:
 - `o`: choose sort column.
 - lowercase sort key: ascending.
 - uppercase sort key: descending.
-- Delete: toggle expired.
+- `Delete`: toggle expired.
 - `s`: toggle starred.
 - `p`: prune expired jobs after confirmation.
 - `r`: refresh.
-- Enter or Right: open details.
-- Up, Down, Page Up, Page Down, Home, End: scroll.
+- `Enter` or `Right`: open details.
+- `Up`, `Down`, `Page Up`, `Page Down`, `Home`, `End`: scroll.
 - `G`: generate a tailored resume from selected job details.
-- Esc, `q`, or Left: go back or quit.
+- `Esc`, `q`, or `Left`: go back or quit.
 
 Expired rows are dimmed, struck through, and sorted after active jobs. Starred
 rows are highlighted. Pruned jobs are hidden from list and search results.
