@@ -1,48 +1,33 @@
 # RoleMap
 
-RoleMap is a local-first job search workspace. It keeps every job description,
-company, salary range, URL, and local status in a private SQLite database so
-you can search roles quickly, reopen the original posting, mark expired jobs,
-and generate tailored resume prompts from the same source of truth.
-
-If your job search is spread across browser tabs, emails, pasted notes, and
-one-off resume drafts, RoleMap gives you one durable place to keep the roles
-that matter.
+RoleMap is a local-first job search workspace. It stores job descriptions,
+companies, salary ranges, URLs, and status in a private SQLite DB so you can
+search roles, track what matters, and generate a tailored resume from a saved
+job.
 
 ![RoleMap demo](docs/Demo.gif)
 
-## Why Use RoleMap
+## What It Does
 
-- Private by default: your job database stays on your machine.
-- Fast to search: browse saved roles from a terminal UI or scriptable CLI.
-- Built for real job posts: store full source-backed descriptions, not only
-  short summaries.
-- Duplicate-aware: importing the same URL updates the existing job instead of
-  creating clutter.
-- Resume-ready: open a saved role and prepare a tailored generation run from
-  template-directory instructions.
-- Agent-friendly: includes a project-local Codex skill for adding job
-  descriptions consistently.
+- Saves full, source-backed job descriptions.
+- Searches jobs from a terminal UI or CLI.
+- Updates duplicate URLs instead of creating duplicate rows.
+- Tracks starred, expired, and pruned jobs.
+- Generates a tailored resume from a job detail view with one key: `G`.
+- Uses your own resume workspace, so resume generation is fully customizable.
 
 ## Install
 
 RoleMap requires Python 3.12 or newer.
 
-Clone the repository and install the console command:
-
 ```bash
 git clone <repository-url>
 cd RoleMap
 python -m pip install -e .
-```
-
-Check the command:
-
-```bash
 rolemap --help
 ```
 
-You can also run it without installing:
+Without installing:
 
 ```bash
 python -m role_map --help
@@ -50,10 +35,9 @@ python -m role_map --help
 
 ## Quick Start
 
-Initialize your local database:
-
 ```bash
 rolemap init
+rolemap tui
 ```
 
 Add a job:
@@ -68,37 +52,26 @@ rolemap add-job \
   --salary-range '$150k-$190k'
 ```
 
-Open the interactive job browser:
-
-```bash
-rolemap tui
-```
-
-Search from the CLI:
+Search and inspect from CLI:
 
 ```bash
 rolemap list-jobs --query "platform"
-```
-
-Show one saved job:
-
-```bash
 rolemap show-job 1
 ```
 
-By default, RoleMap writes to:
+Default DB path:
 
 ```text
 $XDG_STATE_HOME/rolemap/rolemap.sqlite3
 ```
 
-If `XDG_STATE_HOME` is unset, RoleMap falls back to:
+If `XDG_STATE_HOME` is unset:
 
 ```text
 ~/.local/state/rolemap/rolemap.sqlite3
 ```
 
-Use another database with either `--db` or `ROLEMAP_DB`:
+Use another DB:
 
 ```bash
 rolemap --db /tmp/rolemap.sqlite3 init
@@ -107,23 +80,52 @@ ROLEMAP_DB=/tmp/rolemap.sqlite3 rolemap list-jobs
 
 ## Terminal UI
 
-The TUI is the fastest way to work through saved jobs.
+Run:
 
-- Press `/` to search by publish date, company, title, description, URL, or
-  salary.
-- Press `o` to choose a sort column.
-- Use lowercase sort keys for ascending order and uppercase keys for descending.
-- Press Delete to toggle whether the selected job is expired.
-- Press `s` to toggle whether the selected job is starred.
-- Press `p` to prune expired jobs after confirmation.
-- Press `r` to refresh the list.
-- Press Enter or Right to open details.
-- Press Up, Down, Page Up, Page Down, Home, or End to scroll.
-- Press `G` from a job detail view to prepare a tailored resume generation run.
-- Press Esc, `q`, or Left to go back or quit.
+```bash
+rolemap tui
+```
+
+Keys:
+
+- `/`: search jobs.
+- `o`: choose sort column.
+- lowercase sort key: ascending.
+- uppercase sort key: descending.
+- Delete: toggle expired.
+- `s`: toggle starred.
+- `p`: prune expired jobs after confirmation.
+- `r`: refresh.
+- Enter or Right: open details.
+- Up, Down, Page Up, Page Down, Home, End: scroll.
+- `G`: generate a tailored resume from selected job details.
+- Esc, `q`, or Left: go back or quit.
 
 Expired rows are dimmed, struck through, and sorted after active jobs. Starred
-rows are highlighted, and pruned jobs are hidden from list and search results.
+rows are highlighted. Pruned jobs are hidden from list and search results.
+
+## Resume Generation
+
+Resume generation starts from a saved job detail view:
+
+1. Open `rolemap tui`.
+2. Select a job.
+3. Press Enter or Right.
+4. Press `G`.
+
+`G` opens `codex` from your resume workspace and sends the selected job's
+company, title, and description. Your workspace controls the output, so resume
+format, style, file layout, and instructions are fully customizable.
+
+Set your resume workspace:
+
+```text
+ROLEMAP_RESUME_TEMPLATE_DIR
+```
+
+This directory is an agent workspace, not one static template file. Put your
+resume sources, examples, and instructions there, such as `AGENTS.md` and any
+files Codex should use.
 
 ## Import Jobs
 
@@ -137,7 +139,7 @@ rolemap add-job \
   --url "https://example.com/jobs/platform-engineer"
 ```
 
-Import one JSON object:
+Import JSON:
 
 ```json
 {
@@ -154,105 +156,46 @@ Import one JSON object:
 rolemap add-job --json job.json
 ```
 
-`add-job --json` also accepts an array of job objects.
+`add-job --json` also accepts an array of job objects. Required fields:
+`job_title`, `company_name`, and `job_description`.
 
-RoleMap requires `job_title`, `company_name`, and `job_description`.
-`publish_date`, `url`, and `salary_range` can be empty strings when unknown.
-`is_starred`, `is_expired`, and `is_pruned` are optional and default to false.
-Do not provide `last_update`; RoleMap sets it when a row is inserted or
-updated.
+Optional fields: `publish_date`, `url`, `salary_range`, `is_starred`,
+`is_expired`, and `is_pruned`. Do not provide `last_update`; RoleMap sets it.
 
-If a URL is present, importing the same URL again updates the existing row and
-refreshes `last_update`.
-
-## Project-Local Codex Skill
-
-RoleMap includes a Codex skill for importing source-backed job descriptions:
-
-```text
-codex-skills/add-job-description/SKILL.md
-```
-
-Example request:
-
-```text
-Use the RoleMap add-job-description skill to import all jobs from Gmail.
-
-Search Gmail for job-posting emails, extract each posting URL, fetch the
-canonical posting text, write the jobs to a temporary JSON file, and run:
-
-python -m role_map add-job --json /path/to/jobs.json
-
-Use empty strings for unknown optional fields. Do not summarize descriptions.
-```
-
-The skill tells Codex to prefer company posting text over email snippets, keep
-the full source-backed description, and let RoleMap upsert duplicates by URL.
-
-## Resume Generation
-
-Configure the resume workspace directory:
-
-```text
-ROLEMAP_RESUME_TEMPLATE_DIR
-```
-
-This directory is not treated as a single static template file. It is the
-working directory for the resume agent. Put the resume source files and
-instructions there, such as `AGENTS.md`, examples, or any files the agent should
-use when creating a tailored resume.
-
-RoleMap then opens `codex` in your terminal from the configured workspace
-directory with `--cd`. Codex reads the workspace instructions, receives the job
-prompt, and writes the tailored resume according to that workspace's
-instructions.
-
-The generator receives this environment variable:
-
-```text
-ROLEMAP_RESUME_TEMPLATE_DIR
-```
+If a URL is present, importing the same URL updates the existing row.
 
 ## Keep Descriptions Source-Backed
 
-RoleMap works best when `job_description` contains the original job posting text
-instead of generated summaries.
+RoleMap works best when `job_description` contains original job posting text,
+not generated summaries.
 
-Preview backfills for older generated or email-summary descriptions:
+Backfill older generated or email-summary descriptions:
 
 ```bash
 rolemap backfill-descriptions --dry-run
-```
-
-Apply the backfill:
-
-```bash
 rolemap backfill-descriptions
 ```
 
-Overwrite existing full descriptions when you intentionally want to refetch
-them from source URLs:
+Overwrite existing descriptions when you intentionally want to refetch from
+source URLs:
 
 ```bash
 rolemap backfill-descriptions --overwrite
 ```
 
-Fill missing salary ranges from saved descriptions:
+Fill missing salary ranges:
 
 ```bash
 rolemap backfill-salaries --dry-run
 rolemap backfill-salaries
 ```
 
-Clean already-stored source text that contains known site chrome:
+Clean stored source text that contains known site chrome:
 
 ```bash
 rolemap clean-descriptions --dry-run
 rolemap clean-descriptions
 ```
-
-The current cleaner handles known LinkedIn search, sign-in, pay-range widget,
-and footer text while preserving job, company, and role sections.
 
 ## CLI Reference
 
@@ -268,27 +211,11 @@ rolemap clean-descriptions [--dry-run]
 rolemap tui
 ```
 
-When `list-jobs` output is redirected or piped, it prints tab-separated rows
-with `id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`,
+When `list-jobs` output is redirected or piped, it prints tab-separated rows:
+`id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`,
 `is_expired`, and `last_update`.
 
-## Repository Layout
-
-```text
-role_map/db.py          SQLite connection and schema setup
-role_map/jobs.py        Job data shape, validation, upsert, list, search, and detail queries
-role_map/job_sources.py Job-posting fetch, extraction, and cleanup helpers
-role_map/resumes.py     Resume instruction setup, prompt creation, and generator execution
-role_map/cli.py         Command-line interface
-role_map/tui.py         curses-based job browser
-codex-skills/           Project-local Codex workflows
-docs/specs/             Design notes
-tests/                  Unit tests
-```
-
 ## Development
-
-Run the test suite:
 
 ```bash
 python -m unittest discover -s tests
