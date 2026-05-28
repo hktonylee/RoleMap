@@ -505,14 +505,14 @@ class _JobBrowser:
         height, width = self.stdscr.getmaxyx()
         title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
         self._add_line(
-            0,
+            1,
             0,
             _detail_text(row, title),
             width,
             _detail_attrs(row, curses.A_BOLD),
         )
         self._add_shortcut_help_line(
-            1,
+            0,
             0,
             (
                 _shortcut_key("Esc"),

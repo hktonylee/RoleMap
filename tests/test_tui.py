@@ -965,12 +965,28 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             }
         )
 
-        self.assertIn("PgUp/PgDn/Home/End", screen.lines[1])
-        self.assertIn("Enter URL", screen.lines[1])
-        self.assertIn("G resume", screen.lines[1])
-        self.assertIn("Delete expire", screen.lines[1])
-        self.assertNotIn("Backspace", screen.lines[1])
-        self.assertIn("s star", screen.lines[1])
+        self.assertIn("PgUp/PgDn/Home/End", screen.lines[0])
+        self.assertIn("Enter URL", screen.lines[0])
+        self.assertIn("G resume", screen.lines[0])
+        self.assertIn("Delete expire", screen.lines[0])
+        self.assertNotIn("Backspace", screen.lines[0])
+        self.assertIn("s star", screen.lines[0])
+
+    def test_detail_draws_shortcut_bar_before_title(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "job_description": "Build systems.",
+            }
+        )
+
+        self.assertIn("Esc/q/Left", screen.lines[0])
+        self.assertEqual(screen.lines[1], "Example Systems - Staff Engineer")
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()
@@ -1301,7 +1317,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         job_calls = [
-            call for call in screen.calls if call.y in {0, 3, 4, 5, 6, 7, 9, 10}
+            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7, 9, 10}
         ]
         self.assertTrue(job_calls)
         self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
@@ -1328,7 +1344,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             )
 
         job_calls = [
-            call for call in screen.calls if call.y in {0, 3, 4, 5, 6, 7, 9, 10}
+            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7, 9, 10}
         ]
         self.assertTrue(job_calls)
         self.assertTrue(all(call.attrs & 512 for call in job_calls))
@@ -1353,7 +1369,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         job_calls = [
-            call for call in screen.calls if call.y in {0, 3, 4, 5, 6, 7, 9, 10}
+            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7, 9, 10}
         ]
         self.assertTrue(job_calls)
         self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
