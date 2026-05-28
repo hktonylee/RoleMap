@@ -465,7 +465,12 @@ def _last_index(
 
 
 def _normalize_text(value: str) -> str:
-    lines = [re.sub(r"[ \t\r\f\v]+", " ", line).strip() for line in value.splitlines()]
+    lines = []
+    for line in value.splitlines():
+        normalized = re.sub(r"[ \t\r\f\v]+", " ", line).strip()
+        if normalized.startswith("* "):
+            normalized = f" {normalized}"
+        lines.append(normalized)
     collapsed: list[str] = []
     blank = False
     for line in lines:
@@ -540,6 +545,7 @@ class _VisibleTextParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self._skip_depth = 0
+        self._list_stack: list[str] = []
         self._parts: list[str] = []
 
     @classmethod
@@ -554,7 +560,13 @@ class _VisibleTextParser(HTMLParser):
         tag = tag.lower()
         if tag in self._SKIP_TAGS:
             self._skip_depth += 1
-        if tag in self._BREAK_TAGS:
+        if tag in {"ul", "ol"}:
+            self._list_stack.append(tag)
+        if tag == "h1":
+            self._parts.append("\n# ")
+        elif tag == "li" and self._list_stack and self._list_stack[-1] == "ul":
+            self._parts.append("\n * ")
+        elif tag in self._BREAK_TAGS:
             self._parts.append("\n")
 
     def handle_data(self, data: str) -> None:
@@ -565,5 +577,7 @@ class _VisibleTextParser(HTMLParser):
         tag = tag.lower()
         if tag in self._SKIP_TAGS and self._skip_depth:
             self._skip_depth -= 1
+        if tag in {"ul", "ol"} and self._list_stack:
+            self._list_stack.pop()
         if tag in self._BREAK_TAGS:
             self._parts.append("\n")

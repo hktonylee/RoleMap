@@ -78,7 +78,31 @@ class JobSourceExtractionTest(unittest.TestCase):
 
         self.assertEqual(
             extract_source_description(html),
-            "Backend Engineer\n\nOwn APIs and production services.",
+            "# Backend Engineer\n\nOwn APIs and production services.",
+        )
+
+    def test_extract_source_description_formats_markdown_from_html(self) -> None:
+        html = """
+        <html>
+          <body>
+            <main>
+              <h1>Backend Engineer</h1>
+              <p>Own APIs and production services.</p>
+              <ul>
+                <li>Build source-backed workflows.</li>
+                <li>No generated copy.</li>
+              </ul>
+            </main>
+          </body>
+        </html>
+        """
+
+        self.assertEqual(
+            extract_source_description(html),
+            "# Backend Engineer\n\n"
+            "Own APIs and production services.\n\n"
+            " * Build source-backed workflows.\n\n"
+            " * No generated copy.",
         )
 
     def test_extract_salary_range_from_indeed_visible_text(self) -> None:
