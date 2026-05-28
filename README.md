@@ -166,10 +166,11 @@ If a URL is present, importing the same URL updates the existing row.
 
 ## Keep Descriptions Source-Backed
 
-RoleMap works best when `job_description` contains original job posting text,
-not generated summaries.
+AI-generated summaries can sometimes be saved as `job_description`, but this is
+not desired. When that happens, update the description from the original job
+posting.
 
-Backfill older generated or email-summary descriptions:
+Update descriptions from original job postings:
 
 ```bash
 rolemap backfill-descriptions --dry-run
