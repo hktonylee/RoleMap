@@ -932,9 +932,10 @@ class JobBrowserListViewTest(unittest.TestCase):
         self.assertIn("o Sort (Default)", screen.lines[0])
         self.assertIn("p Prune", screen.lines[0])
         self.assertIn("r Refresh", screen.lines[0])
-        self.assertIn("Enter/Right Details", screen.lines[1])
-        self.assertIn("Esc/q Exit", screen.lines[1])
+        self.assertIn("Enter/Right Details", screen.lines[0])
+        self.assertIn("Esc/q Exit", screen.lines[0])
         self.assertNotIn("Backspace/Delete expire", screen.lines[0])
+        self.assertNotIn(1, screen.lines)
 
     def test_list_help_names_navigation_shortcuts_at_standard_width(self) -> None:
         screen = RecordingScreen()

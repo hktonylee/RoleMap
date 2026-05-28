@@ -54,6 +54,10 @@ def _shortcut_text(text: str) -> _ShortcutHelpSegment:
     return _ShortcutHelpSegment(text)
 
 
+def _shortcut_segments_width(segments: Sequence[_ShortcutHelpSegment]) -> int:
+    return sum(len(segment.text) for segment in segments)
+
+
 def run(repository: JobRepository, initial_query: str = "") -> None:
     curses.wrapper(lambda stdscr: _JobBrowser(stdscr, repository, initial_query).run())
 
@@ -415,40 +419,38 @@ class _JobBrowser:
         if self.search_active:
             self._add_line(0, 0, f"Search: {self.query}_", width, curses.A_BOLD)
         else:
-            self._add_shortcut_help_line(
-                0,
-                0,
-                (
-                    _shortcut_key("/"),
-                    _shortcut_text(" Search  "),
-                    _shortcut_key("Delete"),
-                    _shortcut_text(" Expire  "),
-                    _shortcut_key("s"),
-                    _shortcut_text(" Star  "),
-                    _shortcut_key("o"),
-                    _shortcut_text(f" Sort ({sort_shortcut_label})  "),
-                    _shortcut_key("p"),
-                    _shortcut_text(" Prune  "),
-                    _shortcut_key("r"),
-                    _shortcut_text(" Refresh"),
-                ),
-                width,
+            primary_shortcuts = (
+                _shortcut_key("/"),
+                _shortcut_text(" Search  "),
+                _shortcut_key("Delete"),
+                _shortcut_text(" Expire  "),
+                _shortcut_key("s"),
+                _shortcut_text(" Star  "),
+                _shortcut_key("o"),
+                _shortcut_text(f" Sort ({sort_shortcut_label})  "),
+                _shortcut_key("p"),
+                _shortcut_text(" Prune  "),
+                _shortcut_key("r"),
+                _shortcut_text(" Refresh"),
             )
-            self._add_shortcut_help_line(
-                1,
-                0,
-                (
-                    _shortcut_key("Enter"),
-                    _shortcut_text("/"),
-                    _shortcut_key("Right"),
-                    _shortcut_text(" Details  "),
-                    _shortcut_key("Esc"),
-                    _shortcut_text("/"),
-                    _shortcut_key("q"),
-                    _shortcut_text(" Exit"),
-                ),
-                width,
+            navigation_shortcuts = (
+                _shortcut_key("Enter"),
+                _shortcut_text("/"),
+                _shortcut_key("Right"),
+                _shortcut_text(" Details  "),
+                _shortcut_key("Esc"),
+                _shortcut_text("/"),
+                _shortcut_key("q"),
+                _shortcut_text(" Exit"),
             )
+            combined_shortcuts = primary_shortcuts + (
+                _shortcut_text("  "),
+            ) + navigation_shortcuts
+            if _shortcut_segments_width(combined_shortcuts) <= max(0, width - 1):
+                self._add_shortcut_help_line(0, 0, combined_shortcuts, width)
+            else:
+                self._add_shortcut_help_line(0, 0, primary_shortcuts, width)
+                self._add_shortcut_help_line(1, 0, navigation_shortcuts, width)
 
         if not rows:
             self._add_line(2, 0, "No jobs found.", width)
