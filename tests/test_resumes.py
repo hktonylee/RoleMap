@@ -35,6 +35,7 @@ class ResumeGenerationTest(unittest.TestCase):
             self.assertEqual(
                 result.prompt,
                 "Please generate the resume for this job:\n"
+                "There is an example resume in this directory for reference.\n"
                 "Company: Example Systems\n"
                 "Title: Staff Platform Engineer\n"
                 "Description: Build distributed internal tools.\n",
@@ -81,6 +82,7 @@ class ResumeGenerationTest(unittest.TestCase):
         self.assertEqual(
             command[3],
             "Please generate the resume for this job:\n"
+            "There is an example resume in this directory for reference.\n"
             "Company: Acme Labs\n"
             "Title: Backend Engineer\n"
             "Description: Build APIs.\n",
