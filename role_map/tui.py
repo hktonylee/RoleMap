@@ -507,7 +507,7 @@ class _JobBrowser:
 
     def _draw_detail(self, row: JobRow) -> None:
         height, width = self.stdscr.getmaxyx()
-        title = f"{_row_text(row, 'company_name')} - {_row_text(row, 'job_title')}"
+        title = f"{_row_text(row, 'job_title')} @ {_row_text(row, 'company_name')}"
         self._add_line(
             1,
             0,
@@ -547,17 +547,27 @@ class _JobBrowser:
 
         detail_attrs = _basic_detail_attrs(row)
         description_attrs = _detail_attrs(row)
-        for y, label, key in (
-            (3, "ID", "id"),
-            (4, "Publish date", "publish_date"),
-            (5, "URL", "url"),
-            (6, "Salary range", "salary_range"),
-            (7, "Last update", "last_update"),
-        ):
+        self._add_line(
+            2,
+            0,
+            _detail_text(row, _row_text(row, "url")),
+            width,
+            detail_attrs,
+        )
+
+        detail_rows = (
+            ("ID", "id"),
+            ("Published date", "publish_date"),
+            ("Salary range", "salary_range"),
+            ("Last update", "last_update"),
+        )
+        label_width = max(len(label) + 1 for label, _key in detail_rows)
+        for y, (label, key) in enumerate(detail_rows, start=4):
+            label_text = f"{label}:"
             self._add_line(
                 y,
                 0,
-                _detail_text(row, f"{label}: {_row_text(row, key)}"),
+                _detail_text(row, f"{label_text:<{label_width}} {_row_text(row, key)}"),
                 width,
                 detail_attrs,
             )

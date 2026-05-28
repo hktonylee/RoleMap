@@ -986,7 +986,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         self.assertIn("Esc/q/Left", screen.lines[0])
-        self.assertEqual(screen.lines[1], "Example Systems - Staff Engineer")
+        self.assertEqual(screen.lines[1], "Staff Engineer @ Example Systems")
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()
@@ -1290,11 +1290,23 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         rendered = "\n".join(screen.lines.values())
-        self.assertIn("ID: 42", rendered)
-        self.assertIn("Publish date: 2026-05-24", rendered)
-        self.assertIn("URL: https://example.com/jobs/staff", rendered)
-        self.assertIn("Salary range: $180k-$220k", rendered)
-        self.assertIn("Last update: 2026-05-24T12:20:01-07:00", rendered)
+        self.assertEqual(screen.lines[1].rstrip(), "Staff Engineer @ Example Systems")
+        self.assertEqual(screen.lines[2].rstrip(), "https://example.com/jobs/staff")
+
+        label_values = (
+            ("ID:", "42"),
+            ("Published date:", "2026-05-24"),
+            ("Salary range:", "$180k-$220k"),
+            ("Last update:", "2026-05-24T12:20:01-07:00"),
+        )
+        value_columns = []
+        for y, (label, value) in zip((4, 5, 6, 7), label_values):
+            line = screen.lines[y]
+            self.assertIn(label, line)
+            self.assertIn(value, line)
+            value_columns.append(line.index(value))
+
+        self.assertEqual(len(set(value_columns)), 1)
         self.assertNotIn("First description line.", rendered)
         self.assertIn("Third description line.", rendered)
 
