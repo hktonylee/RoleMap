@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import curses
 import os
-import re
 import shlex
 import subprocess
 import sys
 import textwrap
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 from role_map.jobs import JobRepository, JobRow
 from role_map.resumes import generate_resume, run_resume_generator
@@ -38,28 +38,20 @@ _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
 _BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
-_SHORTCUT_HELP_KEYS = (
-    "Delete",
-    "Down",
-    "Enter",
-    "Esc",
-    "G",
-    "Home",
-    "Left",
-    "PgDn",
-    "PgUp",
-    "Right",
-    "Up",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
-)
-_SHORTCUT_HELP_KEY_PATTERN = re.compile(
-    r"(?<!\S)/(?!\S)|"
-    rf"\b(?:{'|'.join(re.escape(key) for key in _SHORTCUT_HELP_KEYS)})\b"
-)
+
+
+@dataclass(frozen=True)
+class _ShortcutHelpSegment:
+    text: str
+    is_key: bool = False
+
+
+def _shortcut_key(text: str) -> _ShortcutHelpSegment:
+    return _ShortcutHelpSegment(text, is_key=True)
+
+
+def _shortcut_text(text: str) -> _ShortcutHelpSegment:
+    return _ShortcutHelpSegment(text)
 
 
 def run(repository: JobRepository, initial_query: str = "") -> None:
@@ -96,19 +88,6 @@ def _shortcut_key_attrs(attrs: int = curses.A_NORMAL) -> int:
         return attrs | curses.A_BOLD | curses.color_pair(_SHORTCUT_KEY_COLOR_PAIR)
     except curses.error:
         return attrs | curses.A_BOLD
-
-
-def _shortcut_help_segments(text: str) -> list[tuple[str, bool]]:
-    segments: list[tuple[str, bool]] = []
-    offset = 0
-    for match in _SHORTCUT_HELP_KEY_PATTERN.finditer(text):
-        if match.start() > offset:
-            segments.append((text[offset : match.start()], False))
-        segments.append((match.group(), True))
-        offset = match.end()
-    if offset < len(text):
-        segments.append((text[offset:], False))
-    return segments
 
 
 def _list_column_widths(total_width: int) -> tuple[int, int, int, int]:
@@ -440,9 +419,25 @@ class _JobBrowser:
                 0,
                 0,
                 (
-                    "/ Search  Delete Expire  s Star  "
-                    f"o Sort ({sort_shortcut_label})  "
-                    "p Prune  r Refresh  Enter/Right Esc/q"
+                    _shortcut_key("/"),
+                    _shortcut_text(" Search  "),
+                    _shortcut_key("Delete"),
+                    _shortcut_text(" Expire  "),
+                    _shortcut_key("s"),
+                    _shortcut_text(" Star  "),
+                    _shortcut_key("o"),
+                    _shortcut_text(f" Sort ({sort_shortcut_label})  "),
+                    _shortcut_key("p"),
+                    _shortcut_text(" Prune  "),
+                    _shortcut_key("r"),
+                    _shortcut_text(" Refresh  "),
+                    _shortcut_key("Enter"),
+                    _shortcut_text("/"),
+                    _shortcut_key("Right"),
+                    _shortcut_text(" "),
+                    _shortcut_key("Esc"),
+                    _shortcut_text("/"),
+                    _shortcut_key("q"),
                 ),
                 width,
             )
@@ -472,7 +467,18 @@ class _JobBrowser:
         self._add_shortcut_help_line(
             1,
             0,
-            "Up/Down choose  Enter apply  Lowercase asc  Uppercase desc  Esc/q back",
+            (
+                _shortcut_key("Up"),
+                _shortcut_text("/"),
+                _shortcut_key("Down"),
+                _shortcut_text(" choose  "),
+                _shortcut_key("Enter"),
+                _shortcut_text(" apply  Lowercase asc  Uppercase desc  "),
+                _shortcut_key("Esc"),
+                _shortcut_text("/"),
+                _shortcut_key("q"),
+                _shortcut_text(" back"),
+            ),
             width,
         )
         for index, (key, column, label) in enumerate(_SORT_COLUMNS, start=3):
@@ -498,7 +504,30 @@ class _JobBrowser:
         self._add_shortcut_help_line(
             1,
             0,
-            "Esc/q/Left Delete expire s star PgUp/PgDn/Home/End Enter URL G resume",
+            (
+                _shortcut_key("Esc"),
+                _shortcut_text("/"),
+                _shortcut_key("q"),
+                _shortcut_text("/"),
+                _shortcut_key("Left"),
+                _shortcut_text(" "),
+                _shortcut_key("Delete"),
+                _shortcut_text(" expire "),
+                _shortcut_key("s"),
+                _shortcut_text(" star "),
+                _shortcut_key("PgUp"),
+                _shortcut_text("/"),
+                _shortcut_key("PgDn"),
+                _shortcut_text("/"),
+                _shortcut_key("Home"),
+                _shortcut_text("/"),
+                _shortcut_key("End"),
+                _shortcut_text(" "),
+                _shortcut_key("Enter"),
+                _shortcut_text(" URL "),
+                _shortcut_key("G"),
+                _shortcut_text(" resume"),
+            ),
             width,
         )
 
@@ -825,20 +854,20 @@ class _JobBrowser:
         self,
         y: int,
         x: int,
-        text: str,
+        segments: Sequence[_ShortcutHelpSegment],
         width: int,
         attrs: int = curses.A_NORMAL,
     ) -> None:
         if y >= self.stdscr.getmaxyx()[0]:
             return
         offset = x
-        for segment, is_key in _shortcut_help_segments(text):
+        for segment in segments:
             if offset >= width - 1:
                 return
-            clipped = _clip_for_terminal(segment, width - offset)
+            clipped = _clip_for_terminal(segment.text, width - offset)
             if not clipped:
                 return
-            segment_attrs = _shortcut_key_attrs(attrs) if is_key else attrs
+            segment_attrs = _shortcut_key_attrs(attrs) if segment.is_key else attrs
             try:
                 self.stdscr.addstr(y, offset, clipped, segment_attrs)
             except curses.error:

@@ -979,6 +979,30 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertEqual(len(enter_calls), 1)
         self.assertNotEqual(enter_calls[0].attrs, curses.A_NORMAL)
 
+    def test_shortcut_help_line_draws_structured_segments(self) -> None:
+        segment_type = getattr(tui, "_ShortcutHelpSegment", None)
+        self.assertIsNotNone(segment_type)
+        if segment_type is None:
+            return
+
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._add_shortcut_help_line(
+            0,
+            0,
+            (
+                segment_type("Enter", is_key=True),
+                segment_type(" URL"),
+            ),
+            80,
+        )
+
+        self.assertEqual(screen.lines[0], "Enter URL")
+        enter_calls = [call for call in screen.calls if call.text == "Enter"]
+        self.assertEqual(len(enter_calls), 1)
+        self.assertNotEqual(enter_calls[0].attrs, curses.A_NORMAL)
+
     def test_shortcut_key_color_prefers_terminal_orange(self) -> None:
         initializer = getattr(tui, "_init_shortcut_key_color", None)
         self.assertIsNotNone(initializer)
