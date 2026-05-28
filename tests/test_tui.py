@@ -914,7 +914,9 @@ class JobBrowserListViewTest(unittest.TestCase):
             "Esc",
             "q",
         ):
-            calls = [call for call in screen.calls if call.y == 0 and call.text == key]
+            calls = [
+                call for call in screen.calls if call.y in (0, 1) and call.text == key
+            ]
             self.assertTrue(calls, key)
             self.assertTrue(any(call.attrs != curses.A_NORMAL for call in calls), key)
 
@@ -930,7 +932,18 @@ class JobBrowserListViewTest(unittest.TestCase):
         self.assertIn("o Sort (Default)", screen.lines[0])
         self.assertIn("p Prune", screen.lines[0])
         self.assertIn("r Refresh", screen.lines[0])
+        self.assertIn("Enter/Right Details", screen.lines[1])
+        self.assertIn("Esc/q Exit", screen.lines[1])
         self.assertNotIn("Backspace/Delete expire", screen.lines[0])
+
+    def test_list_help_names_navigation_shortcuts_at_standard_width(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        browser._draw_list([])
+
+        self.assertIn("Enter/Right Details", screen.lines[1])
+        self.assertIn("Esc/q Exit", screen.lines[1])
 
 
 class JobBrowserDetailViewTest(unittest.TestCase):

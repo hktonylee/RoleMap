@@ -430,14 +430,22 @@ class _JobBrowser:
                     _shortcut_key("p"),
                     _shortcut_text(" Prune  "),
                     _shortcut_key("r"),
-                    _shortcut_text(" Refresh  "),
+                    _shortcut_text(" Refresh"),
+                ),
+                width,
+            )
+            self._add_shortcut_help_line(
+                1,
+                0,
+                (
                     _shortcut_key("Enter"),
                     _shortcut_text("/"),
                     _shortcut_key("Right"),
-                    _shortcut_text(" "),
+                    _shortcut_text(" Details  "),
                     _shortcut_key("Esc"),
                     _shortcut_text("/"),
                     _shortcut_key("q"),
+                    _shortcut_text(" Exit"),
                 ),
                 width,
             )
