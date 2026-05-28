@@ -190,7 +190,11 @@ def _detail_text(row: JobRow, text: str) -> str:
 def _detail_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
     if _row_is_expired(row):
         attrs |= curses.A_DIM
-    return _starred_attrs(row, attrs)
+    return attrs
+
+
+def _basic_detail_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
+    return _starred_attrs(row, _detail_attrs(row, attrs))
 
 
 def _starred_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
@@ -509,7 +513,7 @@ class _JobBrowser:
             0,
             _detail_text(row, title),
             width,
-            _detail_attrs(row, curses.A_BOLD),
+            _basic_detail_attrs(row, curses.A_BOLD),
         )
         self._add_shortcut_help_line(
             0,
@@ -541,7 +545,8 @@ class _JobBrowser:
             width,
         )
 
-        detail_attrs = _detail_attrs(row)
+        detail_attrs = _basic_detail_attrs(row)
+        description_attrs = _detail_attrs(row)
         for y, label, key in (
             (3, "ID", "id"),
             (4, "Publish date", "publish_date"),
@@ -556,7 +561,13 @@ class _JobBrowser:
                 width,
                 detail_attrs,
             )
-        self._add_line(9, 0, _detail_text(row, "Description:"), width, detail_attrs)
+        self._add_line(
+            9,
+            0,
+            _detail_text(row, "Description:"),
+            width,
+            description_attrs,
+        )
 
         lines = _detail_description_lines(row, width)
         visible = lines[
@@ -564,7 +575,7 @@ class _JobBrowser:
             + max(0, height - _DETAIL_DESCRIPTION_START_ROW)
         ]
         for index, line in enumerate(visible, start=_DETAIL_DESCRIPTION_START_ROW):
-            self._add_line(index, 0, _detail_text(row, line), width, detail_attrs)
+            self._add_line(index, 0, _detail_text(row, line), width, description_attrs)
         self._draw_status_message()
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:

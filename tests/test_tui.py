@@ -1324,7 +1324,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertTrue(all("\u0336" in call.text for call in job_calls))
         self.assertNotIn(" \u0336", "\n".join(call.text for call in job_calls))
 
-    def test_starred_detail_text_uses_yellow_attrs(self) -> None:
+    def test_starred_detail_basic_info_uses_yellow_attrs(self) -> None:
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())
 
@@ -1343,12 +1343,17 @@ class JobBrowserDetailViewTest(unittest.TestCase):
                 }
             )
 
-        job_calls = [
-            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7, 9, 10}
+        basic_info_calls = [
+            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7}
         ]
-        self.assertTrue(job_calls)
-        self.assertTrue(all(call.attrs & 512 for call in job_calls))
-        self.assertGreaterEqual(color_pair.call_count, len(job_calls))
+        description_calls = [
+            call for call in screen.calls if call.y in {9, 10}
+        ]
+        self.assertTrue(basic_info_calls)
+        self.assertTrue(description_calls)
+        self.assertTrue(all(call.attrs & 512 for call in basic_info_calls))
+        self.assertTrue(all(not call.attrs & 512 for call in description_calls))
+        self.assertGreaterEqual(color_pair.call_count, len(basic_info_calls))
 
     def test_pruned_detail_text_uses_dim_attrs_and_strikethrough_text(self) -> None:
         screen = RecordingScreen()
