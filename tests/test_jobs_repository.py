@@ -106,6 +106,23 @@ class JobRepositoryTest(unittest.TestCase):
 
         self.assertEqual(self.repository.get(job_id)["is_read"], 1)
 
+    def test_mark_unread_updates_local_flag(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Senior Software Engineer",
+                company_name="Example Systems",
+                job_description="Build internal systems and tooling.",
+                url="https://example.com/jobs/123",
+                salary_range="$150k-$190k",
+                is_read=True,
+            )
+        )
+
+        self.repository.mark_unread(job_id)
+
+        self.assertEqual(self.repository.get(job_id)["is_read"], 0)
+
     def test_toggle_expired_updates_local_flag(self) -> None:
         job_id = self.repository.add_or_update(
             JobInput(

@@ -143,6 +143,20 @@ class JobRepository:
             raise ValueError(f"Job not found: {job_id}")
         self.connection.commit()
 
+    def mark_unread(self, job_id: int) -> None:
+        cursor = self.connection.execute(
+            """
+            UPDATE jobs
+            SET is_read = 0,
+                last_update = ?
+            WHERE id = ?
+            """,
+            (_local_timestamp(), job_id),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Job not found: {job_id}")
+        self.connection.commit()
+
     def toggle_starred(self, job_id: int) -> bool:
         row = self.get(job_id)
         if row is None:

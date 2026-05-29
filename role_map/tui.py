@@ -326,6 +326,14 @@ def _copy_row_with_starred_state(row: JobRow, is_starred: bool) -> dict[str, obj
     return values
 
 
+def _copy_row_with_read_state(row: JobRow, is_read: bool) -> dict[str, object]:
+    keys_method = getattr(row, "keys", None)
+    keys = keys_method() if callable(keys_method) else ()
+    values = {str(key): row[str(key)] for key in keys}
+    values["is_read"] = int(is_read)
+    return values
+
+
 def _strikethrough(value: str) -> str:
     return "".join(
         character if character.isspace() else character + _STRIKETHROUGH_MARK
@@ -455,6 +463,14 @@ class _JobBrowser:
             is_starred,
         )
 
+    def _replace_cached_read_state(self, index: int, is_read: bool) -> None:
+        if self.list_rows is None or index >= len(self.list_rows):
+            return
+        self.list_rows[index] = _copy_row_with_read_state(
+            self.list_rows[index],
+            is_read,
+        )
+
     def _draw(self, rows: Sequence[JobRow]) -> None:
         self.stdscr.erase()
         if self.mode == "detail" and rows:
@@ -481,6 +497,8 @@ class _JobBrowser:
                 _shortcut_text(" Expire  "),
                 _shortcut_key("s"),
                 _shortcut_text(" Star  "),
+                _shortcut_key("u"),
+                _shortcut_text(" Unread  "),
                 _shortcut_key("o"),
                 _shortcut_text(f" Sort ({sort_shortcut_label})  "),
                 _shortcut_key("p"),
@@ -713,6 +731,10 @@ class _JobBrowser:
         if key == ord("s") and rows:
             is_starred = self.repository.toggle_starred(int(rows[self.selected]["id"]))
             self._replace_cached_starred_state(self.selected, is_starred)
+            return False
+        if key == ord("u") and rows:
+            self.repository.mark_unread(int(rows[self.selected]["id"]))
+            self._replace_cached_read_state(self.selected, False)
             return False
         if key == ord("p"):
             self.prune_confirmation_pending = True

@@ -173,9 +173,13 @@ class ReadRepository(FakeRepository):
     def __init__(self, rows: list[dict[str, object]] | None = None) -> None:
         super().__init__(rows)
         self.read_ids: list[int] = []
+        self.unread_ids: list[int] = []
 
     def mark_read(self, job_id: int) -> None:
         self.read_ids.append(job_id)
+
+    def mark_unread(self, job_id: int) -> None:
+        self.unread_ids.append(job_id)
 
 
 class TuiListFormattingTest(unittest.TestCase):
@@ -684,6 +688,22 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(repository.starred_ids, [42])
 
+    def test_u_marks_selected_job_unread_state(self) -> None:
+        repository = ReadRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        browser.selected = 1
+        rows = [
+            {"id": 41, "is_read": 1},
+            {"id": 42, "is_read": 1},
+        ]
+        browser.list_rows = rows
+
+        should_quit = browser._handle_list_key(ord("u"), rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(repository.unread_ids, [42])
+        self.assertEqual(browser.list_rows[1]["is_read"], 0)
+
     def test_p_prompts_before_pruning_expired_jobs_from_list(self) -> None:
         repository = PruneRepository()
         browser = _JobBrowser(FakeScreen(), repository=repository)
@@ -1028,6 +1048,7 @@ class JobBrowserListViewTest(unittest.TestCase):
             "p",
             "r",
             "s",
+            "u",
             "Enter",
             "Right",
             "Esc",
@@ -1048,6 +1069,7 @@ class JobBrowserListViewTest(unittest.TestCase):
         self.assertIn("/ Search", screen.lines[0])
         self.assertIn("Delete Expire", screen.lines[0])
         self.assertIn("s Star", screen.lines[0])
+        self.assertIn("u Unread", screen.lines[0])
         self.assertIn("o Sort (Default)", screen.lines[0])
         self.assertIn("p Prune", screen.lines[0])
         self.assertIn("r Refresh", screen.lines[0])
