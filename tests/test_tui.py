@@ -154,6 +154,7 @@ def _row(index: int) -> dict[str, object]:
         "salary_range": "",
         "url": "",
         "last_update": "",
+        "is_read": 1,
     }
 
 
@@ -163,6 +164,18 @@ class FakeRepository:
 
     def search(self, query: str) -> list[dict[str, object]]:
         return self.rows
+
+    def mark_read(self, job_id: int) -> None:
+        pass
+
+
+class ReadRepository(FakeRepository):
+    def __init__(self, rows: list[dict[str, object]] | None = None) -> None:
+        super().__init__(rows)
+        self.read_ids: list[int] = []
+
+    def mark_read(self, job_id: int) -> None:
+        self.read_ids.append(job_id)
 
 
 class TuiListFormattingTest(unittest.TestCase):
@@ -175,15 +188,33 @@ class TuiListFormattingTest(unittest.TestCase):
             "salary_range": "$180k-$220k",
             "url": "https://example.com/jobs/staff",
             "last_update": "2026-05-24T12:20:01-07:00",
+            "is_read": 1,
         }
 
         line = _format_list_row(row, _list_column_widths(160), selected=True)
 
-        self.assertTrue(line.startswith("> 2026-05-24"))
+        self.assertTrue(line.startswith("  > 2026-05-24"))
         self.assertLess(line.index("2026-05-24"), line.index("Example Systems"))
         self.assertIn("Staff Engineer", line)
         self.assertIn("$180k-$220k | https://example.com/jobs/staff", line)
         self.assertNotIn("42", line)
+
+    def test_unread_list_row_uses_two_character_read_dot_column(self) -> None:
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "$180k-$220k",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "2026-05-24T12:20:01-07:00",
+            "is_read": 0,
+        }
+
+        line = _format_list_row(row, _list_column_widths(160), selected=True)
+
+        self.assertTrue(line.startswith("• > "))
+        self.assertEqual(line[1], " ")
 
     def test_list_header_aligns_with_rows(self) -> None:
         widths = _list_column_widths(120)
@@ -197,6 +228,7 @@ class TuiListFormattingTest(unittest.TestCase):
                 "salary_range": "$180k-$220k",
                 "url": "",
                 "last_update": "2026-05-24T12:20:01-07:00",
+                "is_read": 1,
             },
             widths,
             selected=False,
@@ -511,14 +543,27 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertEqual(browser.selected, 0)
 
     def test_right_arrow_opens_selected_job_details(self) -> None:
-        browser = _JobBrowser(FakeScreen(), repository=object())
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "",
+            "url": "https://example.com/jobs/staff",
+            "last_update": "",
+            "job_description": "Build systems.",
+            "is_read": 0,
+        }
+        repository = ReadRepository([row])
+        browser = _JobBrowser(FakeScreen(), repository=repository)
         browser.detail_scroll = 3
 
-        should_quit = browser._handle_list_key(curses.KEY_RIGHT, [object()])
+        should_quit = browser._handle_list_key(curses.KEY_RIGHT, [row])
 
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
         self.assertEqual(browser.detail_scroll, 0)
+        self.assertEqual(repository.read_ids, [42])
 
     def test_enter_from_list_opens_details_without_opening_url(self) -> None:
         row = {
@@ -912,11 +957,37 @@ class JobBrowserListViewTest(unittest.TestCase):
         rendered = "\n".join(screen.lines.values())
         self.assertTrue(
             any(
-                line.startswith("> 2026-05-24") and "Company 21" in line
+                line.startswith("  > 2026-05-24") and "Company 21" in line
                 for line in screen.lines.values()
             )
         )
         self.assertNotIn("Company 0", rendered)
+
+    def test_unread_list_draws_far_left_dot_in_red(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        row = {
+            "id": 42,
+            "publish_date": "2026-05-24",
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "salary_range": "",
+            "url": "",
+            "last_update": "",
+            "is_read": 0,
+        }
+
+        with patch.object(tui.curses, "color_pair", return_value=2048) as color_pair:
+            browser._draw_list([row])
+
+        color_pair.assert_any_call(tui._READ_DOT_COLOR_PAIR)
+        dot_calls = [
+            call
+            for call in screen.calls
+            if call.y == 3 and call.x == 0 and call.text == "•"
+        ]
+        self.assertEqual(len(dot_calls), 1)
+        self.assertTrue(dot_calls[0].attrs & 2048)
 
     def test_list_help_highlights_all_shortcut_keys(self) -> None:
         screen = WideRecordingScreen()
@@ -1088,6 +1159,24 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         init_pair.assert_called_once_with(
             tui._STARRED_COLOR_PAIR,
             tui.curses.COLOR_YELLOW,
+            -1,
+        )
+
+    def test_read_dot_color_uses_terminal_red(self) -> None:
+        initializer = getattr(tui, "_init_read_dot_color", None)
+        self.assertIsNotNone(initializer)
+        if initializer is None:
+            return
+
+        with (
+            patch.object(tui.curses, "has_colors", return_value=True),
+            patch.object(tui.curses, "init_pair") as init_pair,
+        ):
+            initializer()
+
+        init_pair.assert_called_once_with(
+            tui._READ_DOT_COLOR_PAIR,
+            tui.curses.COLOR_RED,
             -1,
         )
 

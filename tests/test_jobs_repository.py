@@ -32,6 +32,7 @@ class JobRepositoryTest(unittest.TestCase):
                 "job_description",
                 "url",
                 "salary_range",
+                "is_read",
                 "is_starred",
                 "is_expired",
                 "is_pruned",
@@ -62,6 +63,7 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(row["job_description"], "Build internal systems and tooling.")
         self.assertEqual(row["url"], "https://example.com/jobs/123")
         self.assertEqual(row["salary_range"], "$150k-$190k")
+        self.assertEqual(row["is_read"], 0)
         self.assertEqual(row["is_starred"], 0)
         self.assertEqual(row["is_expired"], 0)
         self.assertEqual(row["is_pruned"], 0)
@@ -87,6 +89,22 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertTrue(first_value)
         self.assertFalse(second_value)
         self.assertEqual(self.repository.get(job_id)["is_starred"], 0)
+
+    def test_mark_read_updates_local_flag(self) -> None:
+        job_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-20",
+                job_title="Senior Software Engineer",
+                company_name="Example Systems",
+                job_description="Build internal systems and tooling.",
+                url="https://example.com/jobs/123",
+                salary_range="$150k-$190k",
+            )
+        )
+
+        self.repository.mark_read(job_id)
+
+        self.assertEqual(self.repository.get(job_id)["is_read"], 1)
 
     def test_toggle_expired_updates_local_flag(self) -> None:
         job_id = self.repository.add_or_update(
@@ -493,7 +511,7 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertIsInstance(row, sqlite3.Row)
         self.assertEqual(row["name"], "ok")
 
-    def test_initialize_database_migrates_existing_jobs_to_is_starred_is_expired_is_pruned_and_created(self) -> None:
+    def test_initialize_database_migrates_existing_jobs_to_is_read_is_starred_is_expired_is_pruned_and_created(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             connection = connect(Path(temp_dir) / "rolemap.sqlite3")
             self.addCleanup(connection.close)
@@ -536,15 +554,16 @@ class DatabaseConnectionTest(unittest.TestCase):
 
             initialize_database(connection)
             row = connection.execute(
-                "SELECT is_starred, is_expired, is_pruned, created FROM jobs"
+                "SELECT is_read, is_starred, is_expired, is_pruned, created FROM jobs"
             ).fetchone()
             version = connection.execute("PRAGMA user_version").fetchone()[0]
 
+        self.assertEqual(row["is_read"], 0)
         self.assertEqual(row["is_starred"], 0)
         self.assertEqual(row["is_expired"], 0)
         self.assertEqual(row["is_pruned"], 0)
         self.assertEqual(row["created"], "2026-05-24T12:20:01-07:00")
-        self.assertEqual(version, 6)
+        self.assertEqual(version, 7)
 
     def test_initialize_database_renames_existing_description_column(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -15,6 +15,7 @@ from role_map.resumes import generate_resume, run_resume_generator
 
 
 _COLUMN_GAP = "  "
+_READ_DOT_PREFIX_WIDTH = 2
 _LIST_PREFIX_WIDTH = 2
 _SORT_COLUMNS = (
     ("p", "publish_date", "Publish date"),
@@ -41,6 +42,7 @@ _BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
 _DESCRIPTION_COLOR_PAIR = 3
 _DESCRIPTION_BACKGROUND = 237
+_READ_DOT_COLOR_PAIR = 4
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,15 @@ def _init_description_color() -> None:
         pass
 
 
+def _init_read_dot_color() -> None:
+    try:
+        if not curses.has_colors():
+            return
+        curses.init_pair(_READ_DOT_COLOR_PAIR, curses.COLOR_RED, -1)
+    except curses.error:
+        pass
+
+
 def _shortcut_key_attrs(attrs: int = curses.A_NORMAL) -> int:
     try:
         return attrs | curses.A_BOLD | curses.color_pair(_SHORTCUT_KEY_COLOR_PAIR)
@@ -107,7 +118,10 @@ def _shortcut_key_attrs(attrs: int = curses.A_NORMAL) -> int:
 
 
 def _list_column_widths(total_width: int) -> tuple[int, int, int, int]:
-    usable_width = max(0, total_width - 1 - _LIST_PREFIX_WIDTH)
+    usable_width = max(
+        0,
+        total_width - 1 - _READ_DOT_PREFIX_WIDTH - _LIST_PREFIX_WIDTH,
+    )
     gap_width = len(_COLUMN_GAP) * 3
     content_width = max(0, usable_width - gap_width)
 
@@ -121,7 +135,7 @@ def _list_column_widths(total_width: int) -> tuple[int, int, int, int]:
 def _format_list_header(widths: tuple[int, int, int, int]) -> str:
     publish_width, company_width, title_width, other_width = widths
     return (
-        " " * _LIST_PREFIX_WIDTH
+        " " * (_READ_DOT_PREFIX_WIDTH + _LIST_PREFIX_WIDTH)
         + _format_cell("Publish date", publish_width)
         + _COLUMN_GAP
         + _format_cell("Company", company_width)
@@ -170,9 +184,10 @@ def _format_list_row(
     selected: bool,
 ) -> str:
     publish_width, company_width, title_width, other_width = widths
+    read_marker = " " if _row_is_read(row) else "•"
     marker = ">" if selected else " "
     line = (
-        f"{marker} "
+        f"{read_marker} {marker} "
         + _format_cell(_row_text(row, "publish_date"), publish_width)
         + _COLUMN_GAP
         + _format_cell(_row_text(row, "company_name"), company_width)
@@ -226,6 +241,13 @@ def _starred_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
         return attrs | curses.A_BOLD
 
 
+def _read_dot_attrs() -> int:
+    try:
+        return curses.color_pair(_READ_DOT_COLOR_PAIR)
+    except curses.error:
+        return curses.A_BOLD
+
+
 def _format_other_information(row: JobRow) -> str:
     values = [
         _row_text(row, "salary_range"),
@@ -269,6 +291,13 @@ def _row_is_expired(row: JobRow) -> bool:
 
 def _row_is_pruned(row: JobRow) -> bool:
     value = _row_value(row, "is_pruned")
+    if isinstance(value, str):
+        return value.strip().casefold() in {"1", "true", "yes"}
+    return bool(value)
+
+
+def _row_is_read(row: JobRow) -> bool:
+    value = _row_value(row, "is_read")
     if isinstance(value, str):
         return value.strip().casefold() in {"1", "true", "yes"}
     return bool(value)
@@ -364,6 +393,7 @@ class _JobBrowser:
         _init_shortcut_key_color()
         _init_starred_color()
         _init_description_color()
+        _init_read_dot_color()
         self.stdscr.keypad(True)
         while True:
             rows = self._current_rows()
@@ -491,9 +521,12 @@ class _JobBrowser:
         )
         visible_rows = rows[page_start : page_start + visible_count]
         for index, row in enumerate(visible_rows, start=page_start):
+            y = index - page_start + 3
             line = _format_list_row(row, widths, selected=index == self.selected)
             attrs = _list_row_attrs(row, selected=index == self.selected)
-            self._add_line(index - page_start + 3, 0, line, width, attrs)
+            self._add_line(y, 0, line, width, attrs)
+            if not _row_is_read(row):
+                self._add_line(y, 0, "•", 2, _read_dot_attrs())
         self._draw_status_message()
 
     def _draw_sort_selector(self) -> None:
@@ -660,6 +693,8 @@ class _JobBrowser:
             self.mode = "detail"
             self.detail_scroll = 0
             self.detail_job_id = _row_id(rows[self.selected])
+            if self.detail_job_id is not None:
+                self.repository.mark_read(self.detail_job_id)
             return False
         if key == ord("o"):
             self.sort_selection_index = _SORT_INDEX_BY_COLUMN.get(

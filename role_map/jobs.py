@@ -24,6 +24,7 @@ class JobInput:
     job_description: str = ""
     url: str = ""
     salary_range: str = ""
+    is_read: bool | None = None
     is_starred: bool | None = None
     is_expired: bool | None = None
     is_pruned: bool | None = None
@@ -37,6 +38,7 @@ class JobInput:
             job_description=_text(data.get("job_description")),
             url=_text(data.get("url")),
             salary_range=_text(data.get("salary_range")),
+            is_read=_optional_bool(data.get("is_read"), "is_read"),
             is_starred=_optional_bool(data.get("is_starred"), "is_starred"),
             is_expired=_optional_bool(data.get("is_expired"), "is_expired"),
             is_pruned=_optional_bool(data.get("is_pruned"), "is_pruned"),
@@ -62,6 +64,7 @@ class JobRepository:
                     job_description,
                     url,
                     salary_range,
+                    is_read,
                     is_starred,
                     is_expired,
                     is_pruned,
@@ -69,7 +72,7 @@ class JobRepository:
                     created,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     validated.publish_date,
@@ -78,6 +81,7 @@ class JobRepository:
                     validated.job_description,
                     _nullable(validated.url),
                     validated.salary_range,
+                    _stored_bool(validated.is_read),
                     _stored_bool(validated.is_starred),
                     _stored_bool(validated.is_expired),
                     _stored_bool(validated.is_pruned),
@@ -100,6 +104,7 @@ class JobRepository:
                 job_description = ?,
                 url = ?,
                 salary_range = ?,
+                is_read = COALESCE(?, is_read),
                 is_starred = COALESCE(?, is_starred),
                 is_expired = COALESCE(?, is_expired),
                 is_pruned = COALESCE(?, is_pruned),
@@ -113,6 +118,7 @@ class JobRepository:
                 validated.job_description,
                 _nullable(validated.url),
                 validated.salary_range,
+                _stored_optional_bool(validated.is_read),
                 _stored_optional_bool(validated.is_starred),
                 _stored_optional_bool(validated.is_expired),
                 _stored_optional_bool(validated.is_pruned),
@@ -122,6 +128,20 @@ class JobRepository:
         )
         self.connection.commit()
         return existing_id
+
+    def mark_read(self, job_id: int) -> None:
+        cursor = self.connection.execute(
+            """
+            UPDATE jobs
+            SET is_read = 1,
+                last_update = ?
+            WHERE id = ?
+            """,
+            (_local_timestamp(), job_id),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Job not found: {job_id}")
+        self.connection.commit()
 
     def toggle_starred(self, job_id: int) -> bool:
         row = self.get(job_id)
@@ -271,6 +291,7 @@ def _validate(job: JobInput) -> JobInput:
         job_description=job.job_description.strip(),
         url=job.url.strip(),
         salary_range=job.salary_range.strip(),
+        is_read=job.is_read,
         is_starred=job.is_starred,
         is_expired=job.is_expired,
         is_pruned=job.is_pruned,
