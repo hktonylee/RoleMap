@@ -7,7 +7,7 @@ description: Add a job description to the local RoleMap SQLite database from pas
 
 Use this skill when the user asks Codex to add a job description to RoleMap. The source can be a pasted JD, email content, a company site extract, or another upstream collector.
 
-Do not generate, summarize, rewrite, or infer the `job_description` yourself. The `job_description` field must be source-backed job-posting text. When a posting URL is available, use Playwright to download the source website and capture the full job description from that page; prefer structured `JobPosting` content when present, then visible page text. Only use email snippets as a temporary placeholder when the source posting cannot be reached.
+Do not generate, summarize, rewrite, or infer the `job_description` yourself. The `job_description` field must be source-backed job-posting text. When a posting URL is available, use Playwright to download the source website and capture the full job description from that page; prefer structured `JobPosting` content when present, then visible page text. Incoming source is often HTML, so prefer storing extracted `job_description` as Markdown that preserves source headings, lists, paragraphs, and links without adding new claims. Only use email snippets as a temporary placeholder when the source posting cannot be reached.
 
 ## Required Fields
 
@@ -27,10 +27,11 @@ Do not provide `last_update`; RoleMap sets `last_update` locally when `rolemap a
 1. Extract the best available job data from the source.
 2. If a job posting URL is available, use Playwright to load the source website and pull the full description from the page rather than writing a generated description.
 3. Preserve the full source job description text in `job_description`. Do not invent the description. Copy 100% from the job site.
-4. Infer `publish_date` from the source website first, using structured `datePosted`, visible posted-date text, or nearby page metadata. If the website does not expose a publish date and the source came from email, infer `publish_date` from the email date. Use an empty string only after both website and email evidence are unavailable.
-5. Use an empty string for other unknown optional fields such as `url` or `salary_range`.
-6. Write a temporary JSON object with the required field names.
-7. Run:
+4. Prefer Markdown output for `job_description` when the source is HTML. Convert structural HTML to Markdown (`#` headings, ` * ` bullets, paragraphs, and links) while keeping content source-backed.
+5. Infer `publish_date` from the source website first, using structured `datePosted`, visible posted-date text, or nearby page metadata. If the website does not expose a publish date and the source came from email, infer `publish_date` from the email date. Use an empty string only after both website and email evidence are unavailable.
+6. Use an empty string for other unknown optional fields such as `url` or `salary_range`.
+7. Write a temporary JSON object with the required field names.
+8. Run:
 
 ```bash
 python -m role_map add-job --json /path/to/job.json
@@ -42,7 +43,7 @@ or, if installed as a console script:
 rolemap add-job --json /path/to/job.json
 ```
 
-8. Report the returned job id and whether the source URL suggests this was an update to an existing job.
+9. Report the returned job id and whether the source URL suggests this was an update to an existing job.
 
 ## JSON Shape
 
@@ -60,6 +61,7 @@ rolemap add-job --json /path/to/job.json
 ## Guardrails
 
 - Keep claims source-grounded; do not invent salary, publish date, or URL.
+- Prefer Markdown for extracted HTML job descriptions, but do not rewrite or summarize the source text to make it prettier.
 - Prefer the canonical company posting URL over aggregator URLs.
 - For email sources, extract the job posting link from the email body; `url` must be the job posting URL, not a Gmail thread URL.
 - For email sources, follow the posting link with Playwright and backfill `job_description` from the source website before treating the row as complete.

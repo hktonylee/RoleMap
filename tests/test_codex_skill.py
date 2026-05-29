@@ -29,6 +29,10 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("full description", body)
         self.assertIn("datePosted", body)
         self.assertIn("email date", body)
+        self.assertIn("Markdown", body)
+        self.assertIn("source headings, lists, paragraphs, and links", body)
+        self.assertIn("`#` headings", body)
+        self.assertIn("` * ` bullets", body)
         self.assertIn("source website", body)
         self.assertIn("backfill-descriptions", body)
 
