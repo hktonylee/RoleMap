@@ -193,7 +193,7 @@ class TuiListFormattingTest(unittest.TestCase):
 
         line = _format_list_row(row, _list_column_widths(160), selected=True)
 
-        self.assertTrue(line.startswith("  > 2026-05-24"))
+        self.assertTrue(line.startswith("    2026-05-24"))
         self.assertLess(line.index("2026-05-24"), line.index("Example Systems"))
         self.assertIn("Staff Engineer", line)
         self.assertIn("$180k-$220k | https://example.com/jobs/staff", line)
@@ -213,7 +213,7 @@ class TuiListFormattingTest(unittest.TestCase):
 
         line = _format_list_row(row, _list_column_widths(160), selected=True)
 
-        self.assertTrue(line.startswith("• > "))
+        self.assertTrue(line.startswith("•   "))
         self.assertEqual(line[1], " ")
 
     def test_list_header_aligns_with_rows(self) -> None:
@@ -957,7 +957,7 @@ class JobBrowserListViewTest(unittest.TestCase):
         rendered = "\n".join(screen.lines.values())
         self.assertTrue(
             any(
-                line.startswith("  > 2026-05-24") and "Company 21" in line
+                line.startswith("    2026-05-24") and "Company 21" in line
                 for line in screen.lines.values()
             )
         )

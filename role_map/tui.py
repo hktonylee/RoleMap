@@ -185,7 +185,7 @@ def _format_list_row(
 ) -> str:
     publish_width, company_width, title_width, other_width = widths
     read_marker = " " if _row_is_read(row) else "•"
-    marker = ">" if selected else " "
+    marker = " "
     line = (
         f"{read_marker} {marker} "
         + _format_cell(_row_text(row, "publish_date"), publish_width)
