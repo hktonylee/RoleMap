@@ -5,7 +5,7 @@ import os
 import subprocess
 from contextlib import redirect_stderr, redirect_stdout
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import role_map.tui as tui
 from role_map.tui import (
@@ -1025,7 +1025,19 @@ class JobBrowserListViewTest(unittest.TestCase):
             "is_read": 0,
         }
 
-        with patch.object(tui.curses, "color_pair", return_value=2048):
+        selected_pair = getattr(tui, "_SELECTED_READ_DOT_COLOR_PAIR", None)
+        self.assertIsNotNone(selected_pair)
+        if selected_pair is None:
+            return
+
+        def color_pair_value(pair: int) -> int:
+            if pair == tui._READ_DOT_COLOR_PAIR:
+                return 2048
+            if pair == selected_pair:
+                return 4096
+            return 0
+
+        with patch.object(tui.curses, "color_pair", side_effect=color_pair_value):
             browser._draw_list([row])
 
         dot_calls = [
@@ -1040,7 +1052,9 @@ class JobBrowserListViewTest(unittest.TestCase):
         ]
         self.assertEqual(len(dot_calls), 1)
         self.assertGreaterEqual(len(row_calls), 1)
-        self.assertEqual(dot_calls[0].attrs, row_calls[0].attrs)
+        self.assertTrue(dot_calls[0].attrs & 4096)
+        self.assertTrue(dot_calls[0].attrs & curses.A_REVERSE)
+        self.assertFalse(dot_calls[0].attrs & 2048)
 
     def test_list_help_highlights_all_shortcut_keys(self) -> None:
         screen = WideRecordingScreen()
@@ -1220,7 +1234,11 @@ class JobBrowserDetailViewTest(unittest.TestCase):
     def test_read_dot_color_uses_terminal_red(self) -> None:
         initializer = getattr(tui, "_init_read_dot_color", None)
         self.assertIsNotNone(initializer)
+        selected_pair = getattr(tui, "_SELECTED_READ_DOT_COLOR_PAIR", None)
+        self.assertIsNotNone(selected_pair)
         if initializer is None:
+            return
+        if selected_pair is None:
             return
 
         with (
@@ -1229,10 +1247,19 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         ):
             initializer()
 
-        init_pair.assert_called_once_with(
-            tui._READ_DOT_COLOR_PAIR,
-            tui.curses.COLOR_RED,
-            -1,
+        init_pair.assert_has_calls(
+            [
+                call(
+                    tui._READ_DOT_COLOR_PAIR,
+                    tui.curses.COLOR_RED,
+                    -1,
+                ),
+                call(
+                    selected_pair,
+                    -1,
+                    tui.curses.COLOR_RED,
+                ),
+            ]
         )
 
     def test_description_color_uses_terminal_background_237(self) -> None:

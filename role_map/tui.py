@@ -43,6 +43,7 @@ _STARRED_COLOR_PAIR = 2
 _DESCRIPTION_COLOR_PAIR = 3
 _DESCRIPTION_BACKGROUND = 237
 _READ_DOT_COLOR_PAIR = 4
+_SELECTED_READ_DOT_COLOR_PAIR = 5
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,7 @@ def _init_read_dot_color() -> None:
         if not curses.has_colors():
             return
         curses.init_pair(_READ_DOT_COLOR_PAIR, curses.COLOR_RED, -1)
+        curses.init_pair(_SELECTED_READ_DOT_COLOR_PAIR, -1, curses.COLOR_RED)
     except curses.error:
         pass
 
@@ -246,6 +248,14 @@ def _read_dot_attrs() -> int:
         return curses.color_pair(_READ_DOT_COLOR_PAIR)
     except curses.error:
         return curses.A_BOLD
+
+
+def _selected_read_dot_attrs(row_attrs: int) -> int:
+    attrs = row_attrs & ~curses.A_COLOR
+    try:
+        return attrs | curses.color_pair(_SELECTED_READ_DOT_COLOR_PAIR)
+    except curses.error:
+        return attrs | curses.A_BOLD
 
 
 def _format_other_information(row: JobRow) -> str:
@@ -544,7 +554,11 @@ class _JobBrowser:
             attrs = _list_row_attrs(row, selected=index == self.selected)
             self._add_line(y, 0, line, width, attrs)
             if not _row_is_read(row):
-                dot_attrs = attrs if index == self.selected else _read_dot_attrs()
+                dot_attrs = (
+                    _selected_read_dot_attrs(attrs)
+                    if index == self.selected
+                    else _read_dot_attrs()
+                )
                 self._add_line(y, 0, "•", 2, dot_attrs)
         self._draw_status_message()
 
