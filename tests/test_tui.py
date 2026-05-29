@@ -1091,6 +1091,21 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             -1,
         )
 
+    def test_description_color_uses_terminal_background_235(self) -> None:
+        initializer = getattr(tui, "_init_description_color", None)
+        self.assertIsNotNone(initializer)
+        if initializer is None:
+            return
+
+        with (
+            patch.object(tui.curses, "has_colors", return_value=True),
+            patch.object(tui.curses, "init_pair") as init_pair,
+            patch.object(tui.curses, "COLORS", 256, create=True),
+        ):
+            initializer()
+
+        init_pair.assert_called_once_with(tui._DESCRIPTION_COLOR_PAIR, -1, 235)
+
     def test_g_key_runs_resume_generation_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
         browser.mode = "detail"
@@ -1394,7 +1409,12 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())
 
-        with patch.object(tui.curses, "color_pair", return_value=512) as color_pair:
+        def color_pair_value(pair: int) -> int:
+            if pair == tui._STARRED_COLOR_PAIR:
+                return 512
+            return 1024
+
+        with patch.object(tui.curses, "color_pair", side_effect=color_pair_value) as color_pair:
             browser._draw_detail(
                 {
                     "id": 42,
@@ -1419,7 +1439,33 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertTrue(description_calls)
         self.assertTrue(all(call.attrs & 512 for call in basic_info_calls))
         self.assertTrue(all(not call.attrs & 512 for call in description_calls))
+        self.assertTrue(all(call.attrs & 1024 for call in description_calls))
         self.assertGreaterEqual(color_pair.call_count, len(basic_info_calls))
+
+    def test_detail_description_uses_background_color_attrs(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        with patch.object(tui.curses, "color_pair", return_value=1024) as color_pair:
+            browser._draw_detail(
+                {
+                    "id": 42,
+                    "publish_date": "2026-05-24",
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "url": "https://example.com/jobs/staff",
+                    "salary_range": "$180k-$220k",
+                    "last_update": "2026-05-24T12:20:01-07:00",
+                    "job_description": "Build systems.",
+                }
+            )
+
+        description_calls = [
+            call for call in screen.calls if call.y in {9, 10}
+        ]
+        self.assertTrue(description_calls)
+        self.assertTrue(all(call.attrs & 1024 for call in description_calls))
+        color_pair.assert_called_with(tui._DESCRIPTION_COLOR_PAIR)
 
     def test_pruned_detail_text_uses_dim_attrs_and_strikethrough_text(self) -> None:
         screen = RecordingScreen()

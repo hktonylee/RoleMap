@@ -39,6 +39,8 @@ _SHORTCUT_KEY_COLOR_PAIR = 1
 _SHORTCUT_KEY_ORANGE = 208
 _BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
+_DESCRIPTION_COLOR_PAIR = 3
+_DESCRIPTION_BACKGROUND = 235
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,15 @@ def _init_starred_color() -> None:
         if not curses.has_colors():
             return
         curses.init_pair(_STARRED_COLOR_PAIR, curses.COLOR_YELLOW, -1)
+    except curses.error:
+        pass
+
+
+def _init_description_color() -> None:
+    try:
+        if not curses.has_colors() or getattr(curses, "COLORS", 0) <= _DESCRIPTION_BACKGROUND:
+            return
+        curses.init_pair(_DESCRIPTION_COLOR_PAIR, -1, _DESCRIPTION_BACKGROUND)
     except curses.error:
         pass
 
@@ -192,6 +203,14 @@ def _detail_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
     if _row_is_expired(row):
         attrs |= curses.A_DIM
     return attrs
+
+
+def _description_attrs(row: JobRow) -> int:
+    attrs = _detail_attrs(row)
+    try:
+        return attrs | curses.color_pair(_DESCRIPTION_COLOR_PAIR)
+    except curses.error:
+        return attrs
 
 
 def _basic_detail_attrs(row: JobRow, attrs: int = curses.A_NORMAL) -> int:
@@ -344,6 +363,7 @@ class _JobBrowser:
         curses.curs_set(0)
         _init_shortcut_key_color()
         _init_starred_color()
+        _init_description_color()
         self.stdscr.keypad(True)
         while True:
             rows = self._current_rows()
@@ -549,7 +569,7 @@ class _JobBrowser:
         )
 
         detail_attrs = _basic_detail_attrs(row)
-        description_attrs = _detail_attrs(row)
+        description_attrs = _description_attrs(row)
         self._add_line(
             2,
             0,
