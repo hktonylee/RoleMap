@@ -544,9 +544,7 @@ class _JobBrowser:
             attrs = _list_row_attrs(row, selected=index == self.selected)
             self._add_line(y, 0, line, width, attrs)
             if not _row_is_read(row):
-                dot_attrs = _read_dot_attrs()
-                if index == self.selected:
-                    dot_attrs |= curses.A_REVERSE
+                dot_attrs = attrs if index == self.selected else _read_dot_attrs()
                 self._add_line(y, 0, "•", 2, dot_attrs)
         self._draw_status_message()
 

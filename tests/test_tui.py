@@ -986,6 +986,7 @@ class JobBrowserListViewTest(unittest.TestCase):
     def test_unread_list_draws_far_left_dot_in_red(self) -> None:
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())
+        browser.selected = 1
         row = {
             "id": 42,
             "publish_date": "2026-05-24",
@@ -996,9 +997,10 @@ class JobBrowserListViewTest(unittest.TestCase):
             "last_update": "",
             "is_read": 0,
         }
+        selected_row = dict(row, id=43, is_read=1)
 
         with patch.object(tui.curses, "color_pair", return_value=2048) as color_pair:
-            browser._draw_list([row])
+            browser._draw_list([row, selected_row])
 
         color_pair.assert_any_call(tui._READ_DOT_COLOR_PAIR)
         dot_calls = [
@@ -1031,9 +1033,14 @@ class JobBrowserListViewTest(unittest.TestCase):
             for call in screen.calls
             if call.y == 3 and call.x == 0 and call.text == "•"
         ]
+        row_calls = [
+            call
+            for call in screen.calls
+            if call.y == 3 and call.x == 0 and call.text.startswith("•")
+        ]
         self.assertEqual(len(dot_calls), 1)
-        self.assertTrue(dot_calls[0].attrs & 2048)
-        self.assertTrue(dot_calls[0].attrs & curses.A_REVERSE)
+        self.assertGreaterEqual(len(row_calls), 1)
+        self.assertEqual(dot_calls[0].attrs, row_calls[0].attrs)
 
     def test_list_help_highlights_all_shortcut_keys(self) -> None:
         screen = WideRecordingScreen()
