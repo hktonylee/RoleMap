@@ -127,6 +127,14 @@ class PruneRepository:
         return 2
 
 
+class DescriptionRepository:
+    def __init__(self) -> None:
+        self.updated_descriptions: list[tuple[int, str]] = []
+
+    def update_description(self, job_id: int, description: str) -> None:
+        self.updated_descriptions.append((job_id, description.strip()))
+
+
 class KeyScreen(RecordingScreen):
     def __init__(self, keys: list[int]) -> None:
         super().__init__()
@@ -823,6 +831,20 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(repository.starred_ids, [42])
 
+    def test_v_key_edits_current_job_description_from_detail(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+        edited_rows = []
+
+        should_quit = browser._handle_detail_key(
+            ord("v"),
+            {"id": 42, "job_description": "Original description."},
+            edit_description=lambda row: edited_rows.append(row),
+        )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(edited_rows, [{"id": 42, "job_description": "Original description."}])
+
     def test_detail_view_keeps_current_job_selected_after_rows_reorder(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.mode = "detail"
@@ -971,6 +993,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertIn("Delete expire", screen.lines[0])
         self.assertNotIn("Backspace", screen.lines[0])
         self.assertIn("s star", screen.lines[0])
+        self.assertIn("v edit", screen.lines[0])
 
     def test_detail_draws_shortcut_bar_before_title(self) -> None:
         screen = RecordingScreen()
@@ -1113,6 +1136,37 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
         self.assertIn("Resume generation failed: missing AGENTS.md", browser.status_message)
+
+    def test_edit_description_runs_editor_and_saves_changed_description(self) -> None:
+        repository = DescriptionRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+
+        def editor(command, **_kwargs):
+            with open(command[-1], "w", encoding="utf-8") as handle:
+                handle.write("Edited description.\n")
+
+        browser._edit_job_description(
+            {"id": 42, "job_description": "Original description."},
+            editor_command="fake-editor",
+            runner=editor,
+            show_terminal=lambda operation: operation(),
+        )
+
+        self.assertEqual(repository.updated_descriptions, [(42, "Edited description.")])
+        self.assertEqual(browser.detail_job_id, 42)
+        self.assertEqual(browser.status_message, "Description updated.")
+
+    def test_edit_description_reports_missing_editor(self) -> None:
+        repository = DescriptionRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+
+        browser._edit_job_description(
+            {"id": 42, "job_description": "Original description."},
+            editor_command="",
+        )
+
+        self.assertEqual(repository.updated_descriptions, [])
+        self.assertEqual(browser.status_message, "EDITOR is not set.")
 
     def test_enter_key_opens_job_url_with_browser_environment_variable(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())

@@ -5,6 +5,7 @@ import os
 import shlex
 import subprocess
 import sys
+import tempfile
 import textwrap
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -529,6 +530,8 @@ class _JobBrowser:
                 _shortcut_text(" expire "),
                 _shortcut_key("s"),
                 _shortcut_text(" star "),
+                _shortcut_key("v"),
+                _shortcut_text(" edit "),
                 _shortcut_key("PgUp"),
                 _shortcut_text("/"),
                 _shortcut_key("PgDn"),
@@ -734,6 +737,7 @@ class _JobBrowser:
         generate=generate_resume,
         run_generator=run_resume_generator,
         show_terminal=None,
+        edit_description: Callable[[JobRow], None] | None = None,
     ) -> bool:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
@@ -753,6 +757,10 @@ class _JobBrowser:
             if job_id is not None:
                 self.repository.toggle_starred(job_id)
                 self.detail_job_id = job_id
+            return False
+        if key == ord("v") and row is not None:
+            edit = self._edit_job_description if edit_description is None else edit_description
+            edit(row)
             return False
         if key in (ord("G"), ord("g")) and row is not None:
             try:
@@ -843,6 +851,59 @@ class _JobBrowser:
                 self.status_message = f"Open URL failed: exit {returncode}"
             else:
                 self.status_message = f"Opened URL: {url}"
+
+    def _edit_job_description(
+        self,
+        row: JobRow,
+        editor_command: str | None = None,
+        runner: Callable[..., object] = subprocess.run,
+        show_terminal=None,
+    ) -> None:
+        editor = (
+            os.environ.get("EDITOR", "") if editor_command is None else editor_command
+        ).strip()
+        if not editor:
+            self.status_message = "EDITOR is not set."
+            return
+        job_id = _row_id(row)
+        if job_id is None:
+            self.status_message = "Edit description failed: missing job id"
+            return
+
+        path = ""
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                prefix="rolemap-job-description-",
+                suffix=".md",
+                delete=False,
+            ) as handle:
+                path = handle.name
+                handle.write(_row_text(row, "job_description"))
+                handle.write("\n")
+
+            command = shlex.split(editor) + [path]
+            terminal = self._show_terminal if show_terminal is None else show_terminal
+            terminal(lambda: runner(command, check=True))
+            with open(path, encoding="utf-8") as handle:
+                description = handle.read()
+            if description.strip() == _row_text(row, "job_description").strip():
+                self.status_message = "Description unchanged."
+                return
+            self.repository.update_description(job_id, description)
+        except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+            self.status_message = f"Edit description failed: {exc}"
+        else:
+            self.detail_job_id = job_id
+            self._clear_list_rows()
+            self.status_message = "Description updated."
+        finally:
+            if path:
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
 
     def _show_terminal(self, operation):
         curses.def_prog_mode()
