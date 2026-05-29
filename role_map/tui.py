@@ -526,7 +526,10 @@ class _JobBrowser:
             attrs = _list_row_attrs(row, selected=index == self.selected)
             self._add_line(y, 0, line, width, attrs)
             if not _row_is_read(row):
-                self._add_line(y, 0, "•", 2, _read_dot_attrs())
+                dot_attrs = _read_dot_attrs()
+                if index == self.selected:
+                    dot_attrs |= curses.A_REVERSE
+                self._add_line(y, 0, "•", 2, dot_attrs)
         self._draw_status_message()
 
     def _draw_sort_selector(self) -> None:
