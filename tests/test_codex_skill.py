@@ -25,6 +25,10 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("last_update", body)
         self.assertIn("not a Gmail", body)
         self.assertIn("Do not generate", body)
+        self.assertIn("Playwright", body)
+        self.assertIn("full description", body)
+        self.assertIn("datePosted", body)
+        self.assertIn("email date", body)
         self.assertIn("source website", body)
         self.assertIn("backfill-descriptions", body)
 
