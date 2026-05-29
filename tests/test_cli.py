@@ -75,6 +75,10 @@ class ListJobsCliTest(unittest.TestCase):
             "Example Systems\tStaff Engineer\t$180k-$220k\thttps://example.com/jobs/staff\t0\t",
             stdout.getvalue(),
         )
+        fields = stdout.getvalue().strip().split("\t")
+        self.assertEqual(len(fields), 9)
+        self.assertRegex(fields[7], r"^\d{4}-\d{2}-\d{2}T")
+        self.assertRegex(fields[8], r"^\d{4}-\d{2}-\d{2}T")
 
     def test_format_job_includes_expired_state(self) -> None:
         row = self.repository.list()[0]
@@ -82,6 +86,13 @@ class ListJobsCliTest(unittest.TestCase):
         output = _format_job(row)
 
         self.assertIn("Expired: no", output)
+
+    def test_format_job_includes_created_timestamp(self) -> None:
+        row = self.repository.list()[0]
+
+        output = _format_job(row)
+
+        self.assertIn(f"Created: {row['created']}", output)
 
 
 class MainCliTest(unittest.TestCase):

@@ -160,7 +160,8 @@ rolemap add-job --json job.json
 `job_title`, `company_name`, and `job_description`.
 
 Optional fields: `publish_date`, `url`, `salary_range`, `is_starred`,
-`is_expired`, and `is_pruned`. Do not provide `last_update`; RoleMap sets it.
+`is_expired`, and `is_pruned`. Do not provide `last_update` or `created`;
+RoleMap sets them.
 
 If a URL is present, importing the same URL updates the existing row.
 
@@ -214,7 +215,7 @@ rolemap tui
 
 When `list-jobs` output is redirected or piped, it prints tab-separated rows:
 `id`, `publish_date`, `company_name`, `job_title`, `salary_range`, `url`,
-`is_expired`, and `last_update`.
+`is_expired`, `last_update`, and `created`.
 
 ## Development
 

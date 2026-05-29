@@ -23,6 +23,7 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("salary_range", body)
         self.assertIn("publish_date", body)
         self.assertIn("last_update", body)
+        self.assertIn("created", body)
         self.assertIn("not a Gmail", body)
         self.assertIn("Do not generate", body)
         self.assertIn("Playwright", body)
@@ -62,6 +63,7 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("url", body)
         self.assertIn("is_expired", body)
         self.assertIn("last_update", body)
+        self.assertIn("created", body)
         self.assertIn("read-only", body)
 
 

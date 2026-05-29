@@ -53,5 +53,6 @@ Noninteractive `rolemap list-jobs` output is tab-separated with these columns:
 - `url`
 - `is_expired`
 - `last_update`
+- `created`
 
 If the user wants full details for one row, run `rolemap show-job ID` after listing. Do not infer details from truncated list rows.

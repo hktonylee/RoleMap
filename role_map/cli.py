@@ -146,6 +146,7 @@ def _handle_list_jobs(args: argparse.Namespace, repository: JobRepository) -> in
                     row["url"] or "",
                     str(row["is_expired"] or 0),
                     row["last_update"],
+                    row["created"],
                 ]
             )
         )
@@ -353,6 +354,7 @@ def _format_job(row: sqlite3.Row) -> str:
         ("Salary range", row["salary_range"]),
         ("Expired", "yes" if row["is_expired"] else "no"),
         ("Last update", row["last_update"]),
+        ("Created", row["created"]),
         ("Created at", row["created_at"]),
         ("Description", row["job_description"]),
     ]

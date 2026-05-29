@@ -20,7 +20,7 @@ Capture these fields for the `jobs` table:
 - `url`
 - `salary_range`
 
-Do not provide `last_update`; RoleMap sets `last_update` locally when `rolemap add-job` inserts or updates the row.
+Do not provide `last_update` or `created`; RoleMap sets them locally. `last_update` changes when `rolemap add-job` inserts or updates the row, while `created` stays fixed at the row's original insert time.
 
 ## Workflow
 
@@ -69,4 +69,4 @@ rolemap add-job --json /path/to/job.json
 - To replace older generated/email-summary descriptions, run `python -m role_map backfill-descriptions` against the target database. Use `--dry-run` first when you want to preview which source URLs can be fetched.
 - If fetched source text includes site chrome such as `Skip to main content`, `Expand search`, sign-in prompts, or footers, run `python -m role_map clean-descriptions` to remove known non-JD text from stored descriptions.
 - If the job text includes multiple roles, ask which one to add unless the user already named the role.
-- If the same `url` is imported again, RoleMap updates that row and refreshes `last_update`.
+- If the same `url` is imported again, RoleMap updates that row and refreshes `last_update`; `created` keeps the original insert time.

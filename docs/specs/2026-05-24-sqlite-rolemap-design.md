@@ -6,7 +6,7 @@ Build a local, SQLite-centered RoleMap system for storing and browsing job descr
 
 ## Requirements
 
-- Store jobs in SQLite with at least: publish date, job title, company name, job_description, URL, salary range, expired flag, and last local update time.
+- Store jobs in SQLite with at least: publish date, job title, company name, job_description, URL, salary range, expired flag, created time, and last local update time.
 - Provide a Codex skill that tells Codex how to add a job description from external sources such as email, company sites, or pasted JD text.
 - Provide an interactive terminal UI with a filterable fzf-like job list and a details viewer.
 - Keep the implementation dependency-light and local-first.
@@ -36,9 +36,10 @@ The `jobs` table uses a stable integer primary key and stores source data as tex
 - `salary_range`
 - `is_expired`
 - `last_update`
+- `created`
 - `created_at`
 
-`url` is unique when present so repeated imports from the same job posting update the existing row. `is_expired` is a local tracking flag for postings that should remain in history but no longer be treated as active. List and search views order by `is_expired` first so active jobs stay above expired jobs. `last_update` is always set by the local system in ISO-8601 local time when the record is inserted or updated.
+`url` is unique when present so repeated imports from the same job posting update the existing row. `is_expired` is a local tracking flag for postings that should remain in history but no longer be treated as active. List and search views order by `is_expired` first so active jobs stay above expired jobs. `last_update` is always set by the local system in ISO-8601 local time when the record is inserted or updated. `created` is set when the row is inserted and is not changed by later updates.
 
 ## CLI And TUI
 

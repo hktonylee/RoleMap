@@ -66,9 +66,10 @@ class JobRepository:
                     is_expired,
                     is_pruned,
                     last_update,
+                    created,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     validated.publish_date,
@@ -80,6 +81,7 @@ class JobRepository:
                     _stored_bool(validated.is_starred),
                     _stored_bool(validated.is_expired),
                     _stored_bool(validated.is_pruned),
+                    now,
                     now,
                     now,
                 ),
