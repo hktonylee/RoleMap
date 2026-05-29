@@ -1091,7 +1091,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             -1,
         )
 
-    def test_description_color_uses_terminal_background_235(self) -> None:
+    def test_description_color_uses_terminal_background_237(self) -> None:
         initializer = getattr(tui, "_init_description_color", None)
         self.assertIsNotNone(initializer)
         if initializer is None:
@@ -1104,7 +1104,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         ):
             initializer()
 
-        init_pair.assert_called_once_with(tui._DESCRIPTION_COLOR_PAIR, -1, 235)
+        init_pair.assert_called_once_with(tui._DESCRIPTION_COLOR_PAIR, -1, 237)
 
     def test_g_key_runs_resume_generation_from_detail_view(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
@@ -1398,7 +1398,9 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         job_calls = [
-            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7, 9, 10}
+            call
+            for call in screen.calls
+            if call.y in {1, 3, 4, 5, 6, 7, 9, 10} and call.text.strip()
         ]
         self.assertTrue(job_calls)
         self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))
@@ -1467,6 +1469,32 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertTrue(all(call.attrs & 1024 for call in description_calls))
         color_pair.assert_called_with(tui._DESCRIPTION_COLOR_PAIR)
 
+    def test_detail_description_background_fills_whole_region(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+
+        with patch.object(tui.curses, "color_pair", return_value=1024):
+            browser._draw_detail(
+                {
+                    "id": 42,
+                    "publish_date": "2026-05-24",
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "url": "https://example.com/jobs/staff",
+                    "salary_range": "$180k-$220k",
+                    "last_update": "2026-05-24T12:20:01-07:00",
+                    "job_description": "Build systems.",
+                }
+            )
+
+        background_calls = [
+            call
+            for call in screen.calls
+            if 9 <= call.y < 24 and call.text == " " * 79
+        ]
+        self.assertEqual([call.y for call in background_calls], list(range(9, 24)))
+        self.assertTrue(all(call.attrs & 1024 for call in background_calls))
+
     def test_pruned_detail_text_uses_dim_attrs_and_strikethrough_text(self) -> None:
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())
@@ -1486,7 +1514,9 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         )
 
         job_calls = [
-            call for call in screen.calls if call.y in {1, 3, 4, 5, 6, 7, 9, 10}
+            call
+            for call in screen.calls
+            if call.y in {1, 3, 4, 5, 6, 7, 9, 10} and call.text.strip()
         ]
         self.assertTrue(job_calls)
         self.assertTrue(all(call.attrs & curses.A_DIM for call in job_calls))

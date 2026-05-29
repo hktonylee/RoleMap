@@ -40,7 +40,7 @@ _SHORTCUT_KEY_ORANGE = 208
 _BROWSER_OPEN_WAIT_SECONDS = 1.0
 _STARRED_COLOR_PAIR = 2
 _DESCRIPTION_COLOR_PAIR = 3
-_DESCRIPTION_BACKGROUND = 235
+_DESCRIPTION_BACKGROUND = 237
 
 
 @dataclass(frozen=True)
@@ -570,6 +570,8 @@ class _JobBrowser:
 
         detail_attrs = _basic_detail_attrs(row)
         description_attrs = _description_attrs(row)
+        for y in range(9, height):
+            self._add_line(y, 0, " " * width, width, description_attrs)
         self._add_line(
             2,
             0,
