@@ -569,6 +569,37 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertEqual(browser.detail_scroll, 0)
         self.assertEqual(repository.read_ids, [42])
 
+    def test_clicking_list_row_selects_it_and_second_click_opens_details(self) -> None:
+        rows = [_row(index) for index in range(3)]
+        repository = ReadRepository(rows)
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        click_state = getattr(tui.curses, "BUTTON1_CLICKED", 0)
+
+        with patch.object(
+            tui.curses,
+            "getmouse",
+            side_effect=[(0, 1, 4, 0, click_state)],
+        ):
+            should_quit = browser._handle_list_key(curses.KEY_MOUSE, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "list")
+        self.assertEqual(browser.selected, 1)
+        self.assertEqual(repository.read_ids, [])
+
+        with patch.object(
+            tui.curses,
+            "getmouse",
+            side_effect=[(0, 1, 4, 0, click_state)],
+        ):
+            should_quit = browser._handle_list_key(curses.KEY_MOUSE, rows)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "detail")
+        self.assertEqual(browser.detail_scroll, 0)
+        self.assertEqual(browser.detail_job_id, 1)
+        self.assertEqual(repository.read_ids, [1])
+
     def test_enter_from_list_opens_details_without_opening_url(self) -> None:
         row = {
             "id": 42,

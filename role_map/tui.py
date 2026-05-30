@@ -32,6 +32,7 @@ _SORT_INDEX_BY_COLUMN = {
 }
 _DETAIL_DESCRIPTION_START_ROW = 10
 _DETAIL_DESCRIPTION_WRAP_WIDTH = 120
+_LIST_FIRST_ROW = 3
 _STRIKETHROUGH_MARK = "\u0336"
 _BACKSPACE_KEYS = (curses.KEY_BACKSPACE, 127, 8)
 _DELETE_KEYS = (curses.KEY_DC,)
@@ -108,6 +109,20 @@ def _init_read_dot_color() -> None:
             return
         curses.init_pair(_READ_DOT_COLOR_PAIR, curses.COLOR_RED, -1)
         curses.init_pair(_SELECTED_READ_DOT_COLOR_PAIR, -1, curses.COLOR_RED)
+    except curses.error:
+        pass
+
+
+def _enable_mouse_input() -> None:
+    events = getattr(curses, "BUTTON1_CLICKED", 0) | getattr(
+        curses,
+        "BUTTON1_PRESSED",
+        0,
+    )
+    if not events:
+        return
+    try:
+        curses.mousemask(events)
     except curses.error:
         pass
 
@@ -413,6 +428,7 @@ class _JobBrowser:
         _init_description_color()
         _init_read_dot_color()
         self.stdscr.keypad(True)
+        _enable_mouse_input()
         while True:
             rows = self._current_rows()
             self._restore_selected_row(rows)
@@ -549,7 +565,7 @@ class _JobBrowser:
         )
         visible_rows = rows[page_start : page_start + visible_count]
         for index, row in enumerate(visible_rows, start=page_start):
-            y = index - page_start + 3
+            y = index - page_start + _LIST_FIRST_ROW
             line = _format_list_row(row, widths, selected=index == self.selected)
             attrs = _list_row_attrs(row, selected=index == self.selected)
             self._add_line(y, 0, line, width, attrs)
@@ -720,14 +736,11 @@ class _JobBrowser:
         if key == curses.KEY_END:
             self.selected = max(0, len(rows) - 1)
             return False
+        if key == curses.KEY_MOUSE and rows:
+            self._handle_list_mouse(rows)
+            return False
         if key in (curses.KEY_ENTER, curses.KEY_RIGHT, 10, 13) and rows:
-            self.selected_row_id = _row_value(rows[self.selected], "id")
-            self._clear_list_rows()
-            self.mode = "detail"
-            self.detail_scroll = 0
-            self.detail_job_id = _row_id(rows[self.selected])
-            if self.detail_job_id is not None:
-                self.repository.mark_read(self.detail_job_id)
+            self._open_selected_row_details(rows)
             return False
         if key == ord("o"):
             self.sort_selection_index = _SORT_INDEX_BY_COLUMN.get(
@@ -762,6 +775,51 @@ class _JobBrowser:
             self.search_active = True
             return False
         return False
+
+    def _handle_list_mouse(self, rows: Sequence[JobRow]) -> None:
+        try:
+            _mouse_id, x, y, _z, bstate = curses.getmouse()
+        except curses.error:
+            return
+        if x < 0:
+            return
+        left_click = getattr(curses, "BUTTON1_CLICKED", 0) | getattr(
+            curses,
+            "BUTTON1_PRESSED",
+            0,
+        )
+        if left_click and bstate and not bstate & left_click:
+            return
+        row_index = self._list_row_index_at(y, len(rows))
+        if row_index is None:
+            return
+        if row_index == self.selected:
+            self._open_selected_row_details(rows)
+        else:
+            self.selected = row_index
+
+    def _list_row_index_at(self, y: int, row_count: int) -> int | None:
+        height, _width = self.stdscr.getmaxyx()
+        visible_count = max(0, height - _LIST_FIRST_ROW)
+        if visible_count <= 0:
+            return None
+        offset = y - _LIST_FIRST_ROW
+        if offset < 0 or offset >= visible_count:
+            return None
+        page_start = (self.selected // visible_count) * visible_count
+        row_index = page_start + offset
+        if row_index >= row_count:
+            return None
+        return row_index
+
+    def _open_selected_row_details(self, rows: Sequence[JobRow]) -> None:
+        self.selected_row_id = _row_value(rows[self.selected], "id")
+        self._clear_list_rows()
+        self.mode = "detail"
+        self.detail_scroll = 0
+        self.detail_job_id = _row_id(rows[self.selected])
+        if self.detail_job_id is not None:
+            self.repository.mark_read(self.detail_job_id)
 
     def _handle_search_key(self, key: int) -> bool:
         if key in (curses.KEY_ENTER, 10, 13, 27):
