@@ -164,32 +164,7 @@ and `is_pruned`. Do not provide `last_update` or `created`; RoleMap sets them.
 
 Importing the same URL updates the existing row.
 
-## Keep Descriptions Source-Backed
-
-AI-generated summaries can sometimes be saved as `job_description`, but this is
-not desired. When that happens, update the description from the original job
-posting.
-
-Update descriptions from original job postings:
-
-```bash
-rolemap backfill-descriptions --dry-run
-rolemap backfill-descriptions
-```
-
-Overwrite existing descriptions when you intentionally want to refetch from
-source URLs:
-
-```bash
-rolemap backfill-descriptions --overwrite
-```
-
-Fill missing salary ranges:
-
-```bash
-rolemap backfill-salaries --dry-run
-rolemap backfill-salaries
-```
+## Maintenance
 
 Clean stored source text that contains known site chrome:
 
@@ -207,7 +182,6 @@ rolemap add-job --title ... --company ... --job-description ...
 rolemap list-jobs [--query TEXT]
 rolemap show-job ID
 rolemap backfill-descriptions [--dry-run] [--overwrite]
-rolemap backfill-salaries [--dry-run] [--overwrite] [--fetch]
 rolemap clean-descriptions [--dry-run]
 rolemap tui
 ```
