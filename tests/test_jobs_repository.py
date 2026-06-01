@@ -142,7 +142,7 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertFalse(second_value)
         self.assertEqual(self.repository.get(job_id)["is_expired"], 0)
 
-    def test_prune_expired_marks_all_expired_jobs_pruned(self) -> None:
+    def test_prune_expired_marks_unstarred_expired_jobs_pruned(self) -> None:
         active_id = self.repository.add_or_update(
             JobInput(
                 publish_date="2026-05-20",
@@ -159,6 +159,17 @@ class JobRepositoryTest(unittest.TestCase):
                 company_name="Example Systems",
                 job_description="Build expired systems.",
                 url="https://example.com/jobs/expired",
+                is_expired=True,
+            )
+        )
+        starred_expired_id = self.repository.add_or_update(
+            JobInput(
+                publish_date="2026-05-21",
+                job_title="Starred Expired Engineer",
+                company_name="Example Systems",
+                job_description="Build important expired systems.",
+                url="https://example.com/jobs/starred-expired",
+                is_starred=True,
                 is_expired=True,
             )
         )
@@ -179,7 +190,9 @@ class JobRepositoryTest(unittest.TestCase):
         self.assertEqual(pruned_count, 1)
         self.assertEqual(self.repository.get(active_id)["is_pruned"], 0)
         self.assertEqual(self.repository.get(expired_id)["is_pruned"], 1)
+        self.assertEqual(self.repository.get(starred_expired_id)["is_pruned"], 0)
         self.assertEqual(self.repository.get(already_pruned_id)["is_pruned"], 1)
+        self.assertIn(starred_expired_id, [row["id"] for row in self.repository.list()])
 
     def test_same_url_updates_existing_job(self) -> None:
         first_id = self.repository.add_or_update(

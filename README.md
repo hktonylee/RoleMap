@@ -94,7 +94,7 @@ Keys:
 - uppercase sort key: descending.
 - `Delete`: toggle expired.
 - `s`: toggle starred.
-- `p`: prune expired jobs after confirmation.
+- `p`: prune unstarred expired jobs after confirmation.
 - `r`: refresh.
 - `Enter` or `Right`: open details.
 - `Up`, `Down`, `Page Up`, `Page Down`, `Home`, `End`: scroll.

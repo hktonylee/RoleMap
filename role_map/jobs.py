@@ -200,6 +200,7 @@ class JobRepository:
             SET is_pruned = 1,
                 last_update = ?
             WHERE is_expired = 1
+              AND is_starred = 0
               AND is_pruned = 0
             """,
             (_local_timestamp(),),
