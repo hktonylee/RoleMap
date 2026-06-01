@@ -149,6 +149,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active Engineer",
                 company_name="Example Systems",
                 job_description="Build active systems.",
+                url="https://example.com/jobs/active",
             )
         )
         expired_id = self.repository.add_or_update(
@@ -157,6 +158,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Expired Engineer",
                 company_name="Example Systems",
                 job_description="Build expired systems.",
+                url="https://example.com/jobs/expired",
                 is_expired=True,
             )
         )
@@ -166,6 +168,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Pruned Engineer",
                 company_name="Example Systems",
                 job_description="Build pruned systems.",
+                url="https://example.com/jobs/pruned",
                 is_expired=True,
                 is_pruned=True,
             )
@@ -252,6 +255,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Old Engineer",
                 company_name="Old Systems",
                 job_description="Build old systems.",
+                url="https://old.example/jobs/engineer",
             )
         )
         newest_first_id = self.repository.add_or_update(
@@ -260,6 +264,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="First New Engineer",
                 company_name="New Systems",
                 job_description="Build new systems.",
+                url="https://new.example/jobs/first-engineer",
             )
         )
         newest_second_id = self.repository.add_or_update(
@@ -268,6 +273,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Second New Engineer",
                 company_name="New Systems",
                 job_description="Build newer systems.",
+                url="https://new.example/jobs/second-engineer",
             )
         )
         self.connection.execute(
@@ -290,6 +296,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active Old Engineer",
                 company_name="Example Systems",
                 job_description="Build active old systems.",
+                url="https://example.com/jobs/active-old",
             )
         )
         expired_new_id = self.repository.add_or_update(
@@ -298,6 +305,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Expired New Engineer",
                 company_name="Example Systems",
                 job_description="Build expired new systems.",
+                url="https://example.com/jobs/expired-new",
                 is_expired=True,
             )
         )
@@ -307,6 +315,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active New Engineer",
                 company_name="Example Systems",
                 job_description="Build active new systems.",
+                url="https://example.com/jobs/active-new",
             )
         )
         expired_old_id = self.repository.add_or_update(
@@ -315,6 +324,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Expired Old Engineer",
                 company_name="Example Systems",
                 job_description="Build expired old systems.",
+                url="https://example.com/jobs/expired-old",
                 is_expired=True,
             )
         )
@@ -333,6 +343,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Old Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-old",
             )
         )
         newest_first_id = self.repository.add_or_update(
@@ -341,6 +352,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="First New Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-first-new",
             )
         )
         newest_second_id = self.repository.add_or_update(
@@ -349,6 +361,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Second New Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-second-new",
             )
         )
         self.connection.execute(
@@ -371,6 +384,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active Old Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-active-old",
             )
         )
         expired_new_id = self.repository.add_or_update(
@@ -379,6 +393,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Expired New Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-expired-new",
                 is_expired=True,
             )
         )
@@ -388,6 +403,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active New Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-active-new",
             )
         )
         expired_old_id = self.repository.add_or_update(
@@ -396,6 +412,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Expired Old Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-expired-old",
                 is_expired=True,
             )
         )
@@ -414,6 +431,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active Engineer",
                 company_name="Example Systems",
                 job_description="Build active systems.",
+                url="https://example.com/jobs/list-active",
             )
         )
         self.repository.add_or_update(
@@ -422,6 +440,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Pruned Engineer",
                 company_name="Example Systems",
                 job_description="Build pruned systems.",
+                url="https://example.com/jobs/list-pruned",
                 is_pruned=True,
             )
         )
@@ -437,6 +456,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Active Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-active",
             )
         )
         self.repository.add_or_update(
@@ -445,6 +465,7 @@ class JobRepositoryTest(unittest.TestCase):
                 job_title="Pruned Engineer",
                 company_name="Example Systems",
                 job_description="Build shared systems.",
+                url="https://example.com/jobs/search-pruned",
                 is_pruned=True,
             )
         )
@@ -497,6 +518,19 @@ class JobRepositoryTest(unittest.TestCase):
                     company_name="Example Systems",
                     job_description="Build things.",
                     url="https://example.com/jobs/789",
+                    salary_range="",
+                )
+            )
+
+    def test_validation_rejects_missing_url(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Missing required job fields: url"):
+            self.repository.add_or_update(
+                JobInput(
+                    publish_date="2026-05-20",
+                    job_title="Backend Engineer",
+                    company_name="Example Systems",
+                    job_description="Build things.",
+                    url="  ",
                     salary_range="",
                 )
             )

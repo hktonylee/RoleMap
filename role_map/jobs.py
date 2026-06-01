@@ -313,6 +313,7 @@ def _validate(job: JobInput) -> JobInput:
     missing = [
         name
         for name, value in (
+            ("url", normalized.url),
             ("job_title", normalized.job_title),
             ("company_name", normalized.company_name),
             ("job_description", normalized.job_description),

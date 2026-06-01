@@ -28,9 +28,9 @@ Do not provide `last_update` or `created`; RoleMap sets them locally. `last_upda
 2. If a job posting URL is available, use Playwright to load the source website and copy the full description from the page rather than writing a generated description.
 3. Preserve the full source job description text in `job_description`. Do not invent, condense, paraphrase, reorder, or merge text from other sources. Copy 100% from the job site description section.
 4. Prefer Markdown output for `job_description` when the source is HTML. Convert structural HTML to Markdown (`#` headings, ` * ` bullets, paragraphs, and links) while keeping the description text source-backed and complete.
-5. If only an email or search result is available, use it to find the posting URL and metadata, but do not store the email/search snippet as `job_description`. If the source website cannot be reached and no pasted full JD was provided, leave `job_description` empty and report that the description still needs source-site text.
+5. If only an email or search result is available, use it to find the posting URL and metadata, but do not store the email/search snippet as `job_description`. If the source website cannot be reached and no pasted full JD was provided, do not add the job; report that the description still needs source-site text.
 6. Infer `publish_date` from the source website first, using structured `datePosted`, visible posted-date text, or nearby page metadata. If the website does not expose a publish date and the source came from email, infer `publish_date` from the email date. Use an empty string only after both website and email evidence are unavailable.
-7. Use an empty string for other unknown optional fields such as `url` or `salary_range`.
+7. Use an empty string for unknown optional fields such as `salary_range`.
 8. Write a temporary JSON object with the required field names.
 9. Run:
 

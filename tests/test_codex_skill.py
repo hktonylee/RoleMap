@@ -20,6 +20,7 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("company_name", body)
         self.assertIn("job_description", body)
         self.assertIn("url", body)
+        self.assertIn("- `url`", body)
         self.assertIn("salary_range", body)
         self.assertIn("publish_date", body)
         self.assertIn("last_update", body)

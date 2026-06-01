@@ -157,13 +157,12 @@ rolemap add-job --json job.json
 ```
 
 `add-job --json` also accepts an array of job objects. Required fields:
-`job_title`, `company_name`, and `job_description`.
+`url`, `job_title`, `company_name`, and `job_description`.
 
-Optional fields: `publish_date`, `url`, `salary_range`, `is_starred`,
-`is_expired`, and `is_pruned`. Do not provide `last_update` or `created`;
-RoleMap sets them.
+Optional fields: `publish_date`, `salary_range`, `is_starred`, `is_expired`,
+and `is_pruned`. Do not provide `last_update` or `created`; RoleMap sets them.
 
-If a URL is present, importing the same URL updates the existing row.
+Importing the same URL updates the existing row.
 
 ## Keep Descriptions Source-Backed
 
