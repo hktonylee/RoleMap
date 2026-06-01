@@ -2,12 +2,12 @@
 
 ## Goal
 
-Add a local-first resume generation flow to the job details view. A user keeps resume instructions under `ROLEMAP_RESUME_TEMPLATE_DIR`, opens a saved job, presses `G`, and RoleMap prepares a tailored resume generation run for that job.
+Add a local-first resume generation flow to the job details view. A user keeps resume instructions under `ROLEMAP_RESUME_TEMPLATE_DIR`, opens a saved job, presses `g`, and RoleMap prepares a tailored resume generation run for that job.
 
 ## Requirements
 
 - Use `ROLEMAP_RESUME_TEMPLATE_DIR` as the instruction directory.
-- Let the TUI details view start resume generation with `G`.
+- Let the TUI details view start resume generation with `g`.
 - Temporarily leave the curses UI and show the Codex interactive CLI while generation runs.
 - Redraw the job detail view after Codex exits, with a status message that generation finished.
 - Run `codex` as the visible generator command.
@@ -26,7 +26,7 @@ This keeps RoleMap independent from any one AI backend while still making the ba
 
 ## Data Flow
 
-1. Detail screen receives `G`.
+1. Detail screen receives `g`.
 2. TUI calls `role_map.resumes.generate_resume()`.
 3. `role_map.resumes.generate_resume()` builds the job prompt from the selected row.
 4. RoleMap suspends curses and launches the visible generator command, defaulting to interactive `codex --cd <ROLEMAP_RESUME_TEMPLATE_DIR>`.
@@ -39,4 +39,4 @@ If the instruction directory is not configured or does not exist, the TUI shows 
 
 ## Tests
 
-Tests cover prompt creation, visible Codex command construction, configured command execution, the detail help text, `G` starting generation, and generation failure handling.
+Tests cover prompt creation, visible Codex command construction, configured command execution, the detail help text, `g` starting generation, and generation failure handling.

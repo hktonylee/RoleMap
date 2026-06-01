@@ -1160,7 +1160,8 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
         self.assertIn("PgUp/PgDn/Home/End", screen.lines[0])
         self.assertIn("Enter URL", screen.lines[0])
-        self.assertIn("G resume", screen.lines[0])
+        self.assertIn("g generate resume", screen.lines[0])
+        self.assertNotIn("G resume", screen.lines[0])
         self.assertIn("Delete expire", screen.lines[0])
         self.assertNotIn("Backspace", screen.lines[0])
         self.assertIn("s star", screen.lines[0])
@@ -1179,7 +1180,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             }
         )
 
-        self.assertIn("Esc/q/Left", screen.lines[0])
+        self.assertIn("Esc q", screen.lines[0])
         self.assertEqual(screen.lines[1], "Staff Engineer @ Example Systems")
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
@@ -1322,7 +1323,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         result = SimpleNamespace()
 
         should_quit = browser._handle_detail_key(
-            ord("G"),
+            ord("g"),
             row,
             generate=lambda job: generated.append(job) or result,
             run_generator=lambda generation_result: terminal_sessions.append(generation_result),
@@ -1335,12 +1336,33 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertEqual(browser.mode, "detail")
         self.assertEqual(browser.status_message, "Resume generation finished")
 
+    def test_uppercase_g_does_not_run_resume_generation_from_detail_view(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
+        browser.mode = "detail"
+        row = {
+            "id": 42,
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "job_description": "Build systems.",
+        }
+        generated: list[object] = []
+
+        should_quit = browser._handle_detail_key(
+            ord("G"),
+            row,
+            generate=lambda job: generated.append(job),
+        )
+
+        self.assertFalse(should_quit)
+        self.assertEqual(generated, [])
+        self.assertEqual(browser.mode, "detail")
+
     def test_g_key_reports_resume_generation_failure(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=FakeRepository())
         browser.mode = "detail"
 
         should_quit = browser._handle_detail_key(
-            ord("G"),
+            ord("g"),
             {
                 "id": 42,
                 "company_name": "Example Systems",

@@ -623,10 +623,8 @@ class _JobBrowser:
             0,
             (
                 _shortcut_key("Esc"),
-                _shortcut_text("/"),
+                _shortcut_text(" "),
                 _shortcut_key("q"),
-                _shortcut_text("/"),
-                _shortcut_key("Left"),
                 _shortcut_text(" "),
                 _shortcut_key("Delete"),
                 _shortcut_text(" expire "),
@@ -644,8 +642,8 @@ class _JobBrowser:
                 _shortcut_text(" "),
                 _shortcut_key("Enter"),
                 _shortcut_text(" URL "),
-                _shortcut_key("G"),
-                _shortcut_text(" resume"),
+                _shortcut_key("g"),
+                _shortcut_text(" generate resume"),
             ),
             width,
         )
@@ -914,7 +912,7 @@ class _JobBrowser:
             edit = self._edit_job_description if edit_description is None else edit_description
             edit(row)
             return False
-        if key in (ord("G"), ord("g")) and row is not None:
+        if key == ord("g") and row is not None:
             try:
                 result = generate(row)
                 terminal = self._show_terminal if show_terminal is None else show_terminal
@@ -1106,9 +1104,9 @@ class _JobBrowser:
             return
         offset = x
         for segment in segments:
-            if offset >= width - 1:
+            if offset >= width:
                 return
-            clipped = _clip_for_terminal(segment.text, width - offset)
+            clipped = _clip_for_terminal(segment.text, width - offset + 1)
             if not clipped:
                 return
             segment_attrs = _shortcut_key_attrs(attrs) if segment.is_key else attrs
