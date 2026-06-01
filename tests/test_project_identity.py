@@ -47,5 +47,35 @@ class ProjectIdentityTest(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True):
             importlib.reload(cli)
 
+    def test_docs_describe_one_shot_add_job_contract(self) -> None:
+        project_root = Path(__file__).resolve().parents[1]
+        readme = (project_root / "README.md").read_text(encoding="utf-8")
+        spec = (
+            project_root
+            / "docs"
+            / "specs"
+            / "2026-05-24-sqlite-rolemap-design.md"
+        ).read_text(encoding="utf-8")
+        normalized_readme = " ".join(readme.split())
+        normalized_spec = " ".join(spec.split())
+
+        self.assertIn("one-shot", normalized_readme)
+        self.assertIn("fetch source", normalized_readme)
+        self.assertIn(
+            "job_description, salary_range, publish_date, and url",
+            normalized_readme,
+        )
+        self.assertIn("Do not import email or search-result snippets", normalized_readme)
+        self.assertIn("Leave salary_range empty", normalized_readme)
+
+        self.assertIn("one-shot add flow", normalized_spec)
+        self.assertIn("fetch source", normalized_spec)
+        self.assertIn(
+            "capture job_description, salary_range, publish_date, and url",
+            normalized_spec,
+        )
+        self.assertIn("empty salary_range is valid", normalized_spec)
+        self.assertNotIn("Backfilling generated descriptions", spec)
+
 if __name__ == "__main__":
     unittest.main()

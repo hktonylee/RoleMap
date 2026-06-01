@@ -43,6 +43,12 @@ The `jobs` table uses a stable integer primary key and stores source data as tex
 
 ## CLI And TUI
 
+Job import uses a one-shot add flow: fetch source posting content before
+writing to SQLite, capture job_description, salary_range, publish_date, and url
+from source evidence, then insert or update once. Email and search-result
+snippets are not valid `job_description` values. An empty salary_range is valid
+when the source does not publish salary.
+
 CLI commands:
 
 - `rolemap init`
@@ -67,8 +73,8 @@ Initial tests cover:
 
 - Schema creation includes the required columns.
 - Adding a job writes required fields and sets local timestamps.
+- Adding a job rejects placeholder email/search snippets before any DB write.
 - Adding the same URL updates the existing row instead of duplicating it.
-- Backfilling generated descriptions updates the row from source URL text without overwriting manual full descriptions by default.
 - Cleaning descriptions removes known source-site chrome from already-stored descriptions.
 - Search returns jobs across title, company, job_description, URL, salary, and publish date.
 - The Codex skill document exists and names the required add-job workflow.

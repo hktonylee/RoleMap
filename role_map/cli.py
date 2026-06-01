@@ -304,14 +304,14 @@ def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
         items = raw if isinstance(raw, list) else [raw]
         if not all(isinstance(item, dict) for item in items):
             raise ValueError("JSON input must be an object or an array of objects")
-        return [_with_extracted_salary(JobInput.from_mapping(item)) for item in items]
+        return [_prepare_add_job(JobInput.from_mapping(item)) for item in items]
 
     job_description = args.job_description
     if args.job_description_file:
         job_description = Path(args.job_description_file).read_text(encoding="utf-8")
 
     return [
-        _with_extracted_salary(
+        _prepare_add_job(
             JobInput(
                 publish_date=args.publish_date,
                 job_title=args.job_title,
@@ -322,6 +322,16 @@ def _load_jobs(args: argparse.Namespace) -> list[JobInput]:
             )
         )
     ]
+
+
+def _prepare_add_job(job: JobInput) -> JobInput:
+    prepared = _with_extracted_salary(job)
+    if _looks_placeholder_snippet_description(prepared.job_description):
+        raise ValueError(
+            "placeholder snippet descriptions cannot be saved as job_description; "
+            "fetch source text before running add-job"
+        )
+    return prepared
 
 
 def _with_extracted_salary(job: JobInput) -> JobInput:
@@ -363,6 +373,13 @@ def _format_job(row: sqlite3.Row) -> str:
 
 def _looks_generated_description(value: str) -> bool:
     return value.lstrip().startswith("Source: ")
+
+
+def _looks_placeholder_snippet_description(value: str) -> bool:
+    normalized = " ".join(value.strip().lower().split())
+    return normalized.startswith("source: ") and (
+        "email" in normalized or "search-result" in normalized or "search result" in normalized
+    )
 
 
 def _looks_like_job_posting_url(value: str) -> bool:

@@ -129,6 +129,12 @@ files Codex should use.
 
 ## Import Jobs
 
+Use a one-shot import: fetch source posting text first, capture job_description,
+salary_range, publish_date, and url from source evidence, then run
+`rolemap add-job` once with complete data. Do not import email or search-result
+snippets as `job_description`; use those only to find source posting URL and
+metadata. Leave salary_range empty when source does not publish salary.
+
 Add a job from a text file:
 
 ```bash

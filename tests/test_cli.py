@@ -299,6 +299,23 @@ class AddJobSalaryExtractionTest(unittest.TestCase):
             "$70,000-$80,000 per year",
         )
 
+    def test_add_job_rejects_email_snippet_placeholder_description(self) -> None:
+        args = argparse.Namespace(
+            json=None,
+            publish_date="2026-05-25",
+            job_title="Full Stack Developer",
+            company_name="Example Systems",
+            job_description="Source: Indeed job alert email. Email subject: Developer role.",
+            job_description_file="",
+            url="https://ca.indeed.com/viewjob?jk=a85f6585460cb5c0",
+            salary_range="",
+        )
+
+        with self.assertRaisesRegex(ValueError, "placeholder snippet"):
+            _handle_add_job(args, self.repository)
+
+        self.assertEqual(self.repository.list(), [])
+
 
 class BackfillSalariesCliTest(unittest.TestCase):
     def setUp(self) -> None:
