@@ -42,6 +42,13 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("`#` headings", body)
         self.assertIn("` * ` bullets", body)
         self.assertIn("source website", body)
+        self.assertIn("one-shot", body)
+        self.assertIn("job_description`, `salary_range`, `publish_date`, and `url`", body)
+        self.assertIn("Do not add incomplete rows expecting later backfill", body)
+        self.assertIn("Capture salary from structured data, visible compensation text, or source metadata", body)
+        self.assertNotIn("backfill `job_description`", body)
+        self.assertNotIn("backfill-descriptions", body)
+        self.assertNotIn("backfill-salaries", body)
 
     def test_list_jobs_skill_exists_and_documents_workflow(self) -> None:
         skill_path = (
