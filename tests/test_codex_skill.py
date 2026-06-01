@@ -42,7 +42,6 @@ class CodexSkillTest(unittest.TestCase):
         self.assertIn("`#` headings", body)
         self.assertIn("` * ` bullets", body)
         self.assertIn("source website", body)
-        self.assertIn("backfill-descriptions", body)
 
     def test_list_jobs_skill_exists_and_documents_workflow(self) -> None:
         skill_path = (

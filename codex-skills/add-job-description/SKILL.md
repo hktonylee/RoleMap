@@ -65,9 +65,8 @@ rolemap add-job --json /path/to/job.json
 - Prefer Markdown for extracted HTML job descriptions, but do not rewrite, summarize, combine, or polish the source text to make it prettier.
 - Prefer the canonical company posting URL over aggregator URLs.
 - For email sources, extract the job posting link from the email body; `url` must be the job posting URL, not a Gmail thread URL.
-- For email sources, follow the posting link with Playwright and backfill `job_description` from the source website before treating the row as complete; never use an email snippet as the final description.
+- For email sources, follow the posting link with Playwright and use `job_description` from the source website before treating the row as complete; never use an email snippet as the final description.
 - For email sources, use the email date for `publish_date` only when the website does not provide a publish date.
-- To replace older generated/email-summary descriptions, run `python -m role_map backfill-descriptions` against the target database. Use `--dry-run` first when you want to preview which source URLs can be fetched.
 - If fetched source text includes site chrome such as `Skip to main content`, `Expand search`, sign-in prompts, or footers, run `python -m role_map clean-descriptions` to remove known non-JD text from stored descriptions.
 - If the job text includes multiple roles, ask which one to add unless the user already named the role.
 - If the same `url` is imported again, RoleMap updates that row and refreshes `last_update`; `created` keeps the original insert time.

@@ -181,7 +181,6 @@ rolemap add-job --json FILE
 rolemap add-job --title ... --company ... --job-description ...
 rolemap list-jobs [--query TEXT]
 rolemap show-job ID
-rolemap backfill-descriptions [--dry-run] [--overwrite]
 rolemap clean-descriptions [--dry-run]
 rolemap tui
 ```

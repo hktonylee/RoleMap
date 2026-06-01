@@ -48,7 +48,6 @@ CLI commands:
 - `rolemap init`
 - `rolemap add-job --json FILE`
 - `rolemap add-job --title ... --company ... --job-description ...`
-- `rolemap backfill-descriptions [--dry-run] [--overwrite]`
 - `rolemap clean-descriptions [--dry-run]`
 - `rolemap list-jobs`
 - `rolemap show-job ID`
@@ -59,8 +58,6 @@ The TUI starts with a searchable list. Typing filters by company, title, URL, sa
 ## Error Handling
 
 Validation rejects missing title, company, job_description, and malformed empty JSON. Database setup is idempotent. CLI errors should be short and actionable, returning a non-zero exit code. The TUI should tolerate an empty database and show an empty list instead of crashing.
-
-`job_description` should contain source-backed job posting text, not agent-generated summaries. Backfill replaces generated-looking descriptions with text pulled from the stored source URL; by default it only touches descriptions that start with `Source: ` so manually curated full descriptions are preserved.
 
 Source extraction should remove non-JD site chrome where possible. The cleaner strips known LinkedIn navigation, search, sign-in, pay-range widget, and footer text while preserving the actual job/company/role sections.
 
