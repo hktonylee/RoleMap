@@ -519,24 +519,24 @@ class _JobBrowser:
             primary_shortcuts = (
                 _shortcut_key("/"),
                 _shortcut_text(" Search "),
-                _shortcut_key("Delete"),
-                _shortcut_text(" Expire "),
-                _shortcut_key("s"),
-                _shortcut_text(" Star "),
-                _shortcut_key("u"),
-                _shortcut_text(" Unread "),
                 _shortcut_key("o"),
                 _shortcut_text(f" Sort ({sort_shortcut_label}) "),
                 _shortcut_key("p"),
                 _shortcut_text(" Prune "),
+                _shortcut_key("q"),
+                _shortcut_text(" Exit "),
                 _shortcut_key("r"),
-                _shortcut_text(" Refresh"),
+                _shortcut_text(" Refresh "),
+                _shortcut_key("s"),
+                _shortcut_text(" Star "),
+                _shortcut_key("u"),
+                _shortcut_text(" Unread"),
             )
             navigation_shortcuts = (
                 _shortcut_key("Enter"),
                 _shortcut_text(" Details "),
-                _shortcut_key("q"),
-                _shortcut_text(" Exit"),
+                _shortcut_key("Delete"),
+                _shortcut_text(" Expire"),
             )
             combined_shortcuts = primary_shortcuts + (
                 _shortcut_text(" "),

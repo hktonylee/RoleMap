@@ -1105,14 +1105,14 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         for key in (
             "/",
-            "Delete",
             "o",
             "p",
+            "q",
             "r",
             "s",
             "u",
             "Enter",
-            "q",
+            "Delete",
         ):
             calls = [
                 call for call in screen.calls if call.y in (0, 1) and call.text == key
@@ -1128,8 +1128,8 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         self.assertEqual(
             screen.lines[0].rstrip(),
-            "/ Search Delete Expire s Star u Unread o Sort (Default) "
-            "p Prune r Refresh Enter Details q Exit",
+            "/ Search o Sort (Default) p Prune q Exit r Refresh s Star "
+            "u Unread Enter Details Delete Expire",
         )
         self.assertNotIn("Right Details", screen.lines[0])
         self.assertNotIn("Esc Exit", screen.lines[0])
@@ -1144,8 +1144,9 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
+        self.assertIn("q Exit", screen.lines[0])
         self.assertIn("Enter Details", screen.lines[1])
-        self.assertIn("q Exit", screen.lines[1])
+        self.assertIn("Delete Expire", screen.lines[1])
         self.assertNotIn("Right Details", screen.lines[1])
         self.assertNotIn("Esc Exit", screen.lines[1])
         self.assertNotIn("Enter/Right", screen.lines[1])
