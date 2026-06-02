@@ -1153,7 +1153,7 @@ class JobBrowserListViewTest(unittest.TestCase):
 
 
 class JobBrowserDetailViewTest(unittest.TestCase):
-    def test_detail_help_names_page_scroll_keys(self) -> None:
+    def test_detail_help_names_shortcuts(self) -> None:
         screen = WideRecordingScreen()
         browser = _JobBrowser(screen, repository=object())
 
@@ -1173,8 +1173,13 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertEqual(
             screen.lines[0].rstrip(),
             "g Generate Resume q Go Back s Star v Edit Enter Open URL "
-            "Delete Expire PgDn/PgUp/Home/End Scroll",
+            "Delete Expire",
         )
+        self.assertNotIn("PgDn", screen.lines[0])
+        self.assertNotIn("PgUp", screen.lines[0])
+        self.assertNotIn("Home", screen.lines[0])
+        self.assertNotIn("End", screen.lines[0])
+        self.assertNotIn("Scroll", screen.lines[0])
         self.assertNotIn("Esc", screen.lines[0])
         self.assertNotIn("/ Enter", screen.lines[0])
         self.assertNotIn("G resume", screen.lines[0])
