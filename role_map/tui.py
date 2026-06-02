@@ -535,10 +535,6 @@ class _JobBrowser:
             navigation_shortcuts = (
                 _shortcut_key("Enter"),
                 _shortcut_text(" Details "),
-                _shortcut_key("Right"),
-                _shortcut_text(" Details "),
-                _shortcut_key("Esc"),
-                _shortcut_text(" Exit "),
                 _shortcut_key("q"),
                 _shortcut_text(" Exit"),
             )

@@ -1112,8 +1112,6 @@ class JobBrowserListViewTest(unittest.TestCase):
             "s",
             "u",
             "Enter",
-            "Right",
-            "Esc",
             "q",
         ):
             calls = [
@@ -1131,8 +1129,10 @@ class JobBrowserListViewTest(unittest.TestCase):
         self.assertEqual(
             screen.lines[0].rstrip(),
             "/ Search Delete Expire s Star u Unread o Sort (Default) "
-            "p Prune r Refresh Enter Details Right Details Esc Exit q Exit",
+            "p Prune r Refresh Enter Details q Exit",
         )
+        self.assertNotIn("Right Details", screen.lines[0])
+        self.assertNotIn("Esc Exit", screen.lines[0])
         self.assertNotIn("Enter/Right", screen.lines[0])
         self.assertNotIn("Esc/q", screen.lines[0])
         self.assertNotIn("Backspace/Delete expire", screen.lines[0])
@@ -1145,9 +1145,9 @@ class JobBrowserListViewTest(unittest.TestCase):
         browser._draw_list([])
 
         self.assertIn("Enter Details", screen.lines[1])
-        self.assertIn("Right Details", screen.lines[1])
-        self.assertIn("Esc Exit", screen.lines[1])
         self.assertIn("q Exit", screen.lines[1])
+        self.assertNotIn("Right Details", screen.lines[1])
+        self.assertNotIn("Esc Exit", screen.lines[1])
         self.assertNotIn("Enter/Right", screen.lines[1])
         self.assertNotIn("Esc/q", screen.lines[1])
 
