@@ -3,7 +3,7 @@
 RoleMap is a local-first job search workspace. Users can use AI Agent to add
 jobs from email, use CLI to browse jobs, and generate a tailored resume using Codex.
 
-![RoleMap demo](docs/Demo.gif)
+[![RoleMap demo preview](docs/Demo.gif)](docs/Demo.mp4)
 
 ## What It Does
 
