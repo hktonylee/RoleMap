@@ -63,7 +63,6 @@ def _without_resume_environment(environ: Mapping[str, str]) -> dict[str, str]:
 def _format_prompt(row: JobRow) -> str:
     return (
         "Please generate the resume for this job:\n"
-        "There is an example resume in this directory for reference.\n"
         f"Company: {_row_text(row, 'company_name')}\n"
         f"Title: {_row_text(row, 'job_title')}\n"
         f"Description: {_row_text(row, 'job_description')}\n"
