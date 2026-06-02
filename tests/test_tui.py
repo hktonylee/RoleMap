@@ -849,6 +849,16 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "list")
 
+    def test_slash_does_not_return_from_detail_to_focused_search(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+
+        should_quit = browser._handle_detail_key(ord("/"))
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "detail")
+        self.assertFalse(browser.search_active)
+
     def test_page_down_and_page_up_scroll_detail_by_half_screen(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.mode = "detail"
@@ -1142,7 +1152,7 @@ class JobBrowserListViewTest(unittest.TestCase):
 
 class JobBrowserDetailViewTest(unittest.TestCase):
     def test_detail_help_names_page_scroll_keys(self) -> None:
-        screen = RecordingScreen()
+        screen = WideRecordingScreen()
         browser = _JobBrowser(screen, repository=object())
 
         browser._draw_detail(
@@ -1158,14 +1168,15 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             }
         )
 
-        self.assertIn("PgUp/PgDn/Home/End", screen.lines[0])
-        self.assertIn("Enter URL", screen.lines[0])
-        self.assertIn("g generate resume", screen.lines[0])
+        self.assertEqual(
+            screen.lines[0].rstrip(),
+            "g Generate Resume q Go Back s Star v Edit Enter Open URL "
+            "Delete Expire PgDn/PgUp/Home/End Scroll",
+        )
+        self.assertNotIn("Esc", screen.lines[0])
+        self.assertNotIn("/ Enter", screen.lines[0])
         self.assertNotIn("G resume", screen.lines[0])
-        self.assertIn("Delete expire", screen.lines[0])
         self.assertNotIn("Backspace", screen.lines[0])
-        self.assertIn("s star", screen.lines[0])
-        self.assertIn("v edit", screen.lines[0])
 
     def test_detail_draws_shortcut_bar_before_title(self) -> None:
         screen = RecordingScreen()
@@ -1180,7 +1191,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             }
         )
 
-        self.assertIn("Esc q", screen.lines[0])
+        self.assertNotIn("Esc", screen.lines[0])
         self.assertEqual(screen.lines[1], "Staff Engineer @ Example Systems")
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
