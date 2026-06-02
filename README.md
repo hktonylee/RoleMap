@@ -1,9 +1,7 @@
 # RoleMap
 
-RoleMap is a local-first job search workspace. It stores job descriptions,
-companies, salary ranges, URLs, and status in a private SQLite DB so you can
-search roles, track what matters, and generate a tailored resume from a saved
-job.
+RoleMap is a local-first job search workspace. Users can use AI Agent to add
+jobs from email, use CLI to browse jobs, and generate a tailored resume using Codex.
 
 ![RoleMap demo](docs/Demo.gif)
 
@@ -11,10 +9,9 @@ job.
 
 - Saves full, source-backed job descriptions.
 - Searches jobs from a terminal UI or CLI.
-- Updates duplicate URLs instead of creating duplicate rows.
 - Tracks starred, expired, and pruned jobs.
 - Generates a tailored resume from a job detail view with one key: `G`.
-- Uses your own resume workspace, so resume generation is fully customizable.
+- Uses your own resume workspace, with fully customizable AGNETS.md support.
 
 ## Install
 
@@ -90,8 +87,6 @@ Keys:
 
 - `/`: search jobs.
 - `o`: choose sort column.
-- lowercase sort key: ascending.
-- uppercase sort key: descending.
 - `Delete`: toggle expired.
 - `s`: toggle starred.
 - `p`: prune unstarred expired jobs after confirmation.
@@ -101,8 +96,12 @@ Keys:
 - `G`: generate a tailored resume from selected job details.
 - `Esc`, `q`, or `Left`: go back or quit.
 
-Expired rows are dimmed, struck through, and sorted after active jobs. Starred
-rows are highlighted. Pruned jobs are hidden from list and search results.
+Expired rows are dimmed, struck through, and sorted after active jobs.
+
+Starred rows are highlighted.
+
+Expired jobs can be pruned. And pruned jobs are hidden from list and search
+results.
 
 ## Resume Generation
 
