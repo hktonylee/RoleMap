@@ -1128,15 +1128,13 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        self.assertIn("/ Search", screen.lines[0])
-        self.assertIn("Delete Expire", screen.lines[0])
-        self.assertIn("s Star", screen.lines[0])
-        self.assertIn("u Unread", screen.lines[0])
-        self.assertIn("o Sort (Default)", screen.lines[0])
-        self.assertIn("p Prune", screen.lines[0])
-        self.assertIn("r Refresh", screen.lines[0])
-        self.assertIn("Enter/Right Details", screen.lines[0])
-        self.assertIn("Esc/q Exit", screen.lines[0])
+        self.assertEqual(
+            screen.lines[0].rstrip(),
+            "/ Search Delete Expire s Star u Unread o Sort (Default) "
+            "p Prune r Refresh Enter Details Right Details Esc Exit q Exit",
+        )
+        self.assertNotIn("Enter/Right", screen.lines[0])
+        self.assertNotIn("Esc/q", screen.lines[0])
         self.assertNotIn("Backspace/Delete expire", screen.lines[0])
         self.assertNotIn(1, screen.lines)
 
@@ -1146,8 +1144,12 @@ class JobBrowserListViewTest(unittest.TestCase):
 
         browser._draw_list([])
 
-        self.assertIn("Enter/Right Details", screen.lines[1])
-        self.assertIn("Esc/q Exit", screen.lines[1])
+        self.assertIn("Enter Details", screen.lines[1])
+        self.assertIn("Right Details", screen.lines[1])
+        self.assertIn("Esc Exit", screen.lines[1])
+        self.assertIn("q Exit", screen.lines[1])
+        self.assertNotIn("Enter/Right", screen.lines[1])
+        self.assertNotIn("Esc/q", screen.lines[1])
 
 
 class JobBrowserDetailViewTest(unittest.TestCase):

@@ -518,32 +518,32 @@ class _JobBrowser:
         else:
             primary_shortcuts = (
                 _shortcut_key("/"),
-                _shortcut_text(" Search  "),
+                _shortcut_text(" Search "),
                 _shortcut_key("Delete"),
-                _shortcut_text(" Expire  "),
+                _shortcut_text(" Expire "),
                 _shortcut_key("s"),
-                _shortcut_text(" Star  "),
+                _shortcut_text(" Star "),
                 _shortcut_key("u"),
-                _shortcut_text(" Unread  "),
+                _shortcut_text(" Unread "),
                 _shortcut_key("o"),
-                _shortcut_text(f" Sort ({sort_shortcut_label})  "),
+                _shortcut_text(f" Sort ({sort_shortcut_label}) "),
                 _shortcut_key("p"),
-                _shortcut_text(" Prune  "),
+                _shortcut_text(" Prune "),
                 _shortcut_key("r"),
                 _shortcut_text(" Refresh"),
             )
             navigation_shortcuts = (
                 _shortcut_key("Enter"),
-                _shortcut_text("/"),
+                _shortcut_text(" Details "),
                 _shortcut_key("Right"),
-                _shortcut_text(" Details  "),
+                _shortcut_text(" Details "),
                 _shortcut_key("Esc"),
-                _shortcut_text("/"),
+                _shortcut_text(" Exit "),
                 _shortcut_key("q"),
                 _shortcut_text(" Exit"),
             )
             combined_shortcuts = primary_shortcuts + (
-                _shortcut_text("  "),
+                _shortcut_text(" "),
             ) + navigation_shortcuts
             if _shortcut_segments_width(combined_shortcuts) <= max(0, width - 1):
                 self._add_shortcut_help_line(0, 0, combined_shortcuts, width)
