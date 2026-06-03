@@ -416,6 +416,7 @@ class _JobBrowser:
         self.search_active = False
         self.detail_scroll = 0
         self.detail_job_id: int | None = None
+        self.detail_return_index: int | None = None
         self.status_message = ""
         self.prune_confirmation_pending = False
         self.list_rows: list[JobRow] | None = None
@@ -801,6 +802,7 @@ class _JobBrowser:
         self._clear_list_rows()
         self.mode = "detail"
         self.detail_scroll = 0
+        self.detail_return_index = self.selected
         self.detail_job_id = _row_id(rows[self.selected])
         if self.detail_job_id is not None:
             self.repository.mark_read(self.detail_job_id)
@@ -878,6 +880,9 @@ class _JobBrowser:
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
             self.detail_job_id = None
+            if self.detail_return_index is not None:
+                self.selected = self.detail_return_index
+                self.detail_return_index = None
             return False
         if key in (curses.KEY_ENTER, 10, 13) and row is not None:
             self._open_job_url(row, opener)

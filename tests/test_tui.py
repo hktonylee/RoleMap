@@ -108,6 +108,9 @@ class ToggleSearchRepository:
         self.starred_ids.append(job_id)
         return True
 
+    def mark_read(self, job_id: int) -> None:
+        pass
+
 
 class RefreshingRepository:
     def __init__(self) -> None:
@@ -805,6 +808,25 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
             browser.run()
 
         self.assertEqual(screen.drawn_lists, [[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+
+    def test_returning_from_detail_after_expiring_job_keeps_list_row_position(self) -> None:
+        repository = ToggleSearchRepository()
+        browser = _JobBrowser(FakeScreen(), repository=repository)
+        rows = browser._current_rows()
+        browser.selected = 1
+        browser._open_selected_row_details(rows)
+
+        should_quit = browser._handle_detail_key(curses.KEY_DC, rows[1])
+        rows = browser._current_rows()
+        browser._sync_detail_selection(rows)
+        self.assertEqual([row["id"] for row in rows], [1, 3, 2])
+        self.assertEqual(browser.selected, 2)
+
+        should_quit = browser._handle_detail_key(curses.KEY_LEFT, rows[2])
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.mode, "list")
+        self.assertEqual(browser.selected, 1)
 
     def test_star_toggle_keeps_list_order_until_leaving_list(self) -> None:
         repository = ToggleSearchRepository()
