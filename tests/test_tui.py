@@ -871,7 +871,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "list")
 
-    def test_slash_does_not_return_from_detail_to_focused_search(self) -> None:
+    def test_slash_starts_jd_search_from_detail(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
         browser.mode = "detail"
 
@@ -880,6 +880,7 @@ class JobBrowserKeyHandlingTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertEqual(browser.mode, "detail")
         self.assertFalse(browser.search_active)
+        self.assertTrue(browser.detail_search_active)
 
     def test_page_down_and_page_up_scroll_detail_by_half_screen(self) -> None:
         browser = _JobBrowser(FakeScreen(), repository=object())
@@ -1195,7 +1196,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
         self.assertEqual(
             screen.lines[0].rstrip(),
-            "g Generate Resume q Go Back s Star v Edit Enter Open URL "
+            "g Generate Resume q Go Back s Star v Edit / Search JD Enter Open URL "
             "Delete Expire",
         )
         self.assertNotIn("PgDn", screen.lines[0])
@@ -1204,7 +1205,7 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertNotIn("End", screen.lines[0])
         self.assertNotIn("Scroll", screen.lines[0])
         self.assertNotIn("Esc", screen.lines[0])
-        self.assertNotIn("/ Enter", screen.lines[0])
+        self.assertIn("/ Search JD", screen.lines[0])
         self.assertNotIn("G resume", screen.lines[0])
         self.assertNotIn("Backspace", screen.lines[0])
 
@@ -1223,6 +1224,47 @@ class JobBrowserDetailViewTest(unittest.TestCase):
 
         self.assertNotIn("Esc", screen.lines[0])
         self.assertEqual(screen.lines[1], "Staff Engineer @ Example Systems")
+
+    def test_active_jd_search_replaces_detail_shortcut_bar(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.detail_search_active = True
+        browser.detail_search_query = "platform"
+
+        browser._draw_detail(
+            {
+                "id": 42,
+                "company_name": "Example Systems",
+                "job_title": "Staff Engineer",
+                "job_description": "Build platform systems.",
+            }
+        )
+
+        self.assertEqual(screen.lines[0], "JD Search: platform_")
+        self.assertNotIn("Generate Resume", screen.lines[0])
+
+    def test_jd_search_scrolls_to_first_matching_description_line(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+        row = {
+            "id": 42,
+            "job_description": "\n".join(
+                [
+                    "Intro",
+                    "Requirements",
+                    "Build resilient Python services.",
+                    "Benefits",
+                ]
+            ),
+        }
+
+        for key in map(ord, "/python"):
+            should_quit = browser._handle_detail_key(key, row)
+
+        self.assertFalse(should_quit)
+        self.assertTrue(browser.detail_search_active)
+        self.assertEqual(browser.detail_search_query, "python")
+        self.assertEqual(browser.detail_scroll, 2)
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()

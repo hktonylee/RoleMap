@@ -417,6 +417,8 @@ class _JobBrowser:
         self.detail_scroll = 0
         self.detail_job_id: int | None = None
         self.detail_return_index: int | None = None
+        self.detail_search_active = False
+        self.detail_search_query = ""
         self.status_message = ""
         self.prune_confirmation_pending = False
         self.list_rows: list[JobRow] | None = None
@@ -615,25 +617,36 @@ class _JobBrowser:
             width,
             _basic_detail_attrs(row, curses.A_BOLD),
         )
-        self._add_shortcut_help_line(
-            0,
-            0,
-            (
-                _shortcut_key("g"),
-                _shortcut_text(" Generate Resume "),
-                _shortcut_key("q"),
-                _shortcut_text(" Go Back "),
-                _shortcut_key("s"),
-                _shortcut_text(" Star "),
-                _shortcut_key("v"),
-                _shortcut_text(" Edit "),
-                _shortcut_key("Enter"),
-                _shortcut_text(" Open URL "),
-                _shortcut_key("Delete"),
-                _shortcut_text(" Expire"),
-            ),
-            width,
-        )
+        if self.detail_search_active:
+            self._add_line(
+                0,
+                0,
+                f"JD Search: {self.detail_search_query}_",
+                width,
+                curses.A_BOLD,
+            )
+        else:
+            self._add_shortcut_help_line(
+                0,
+                0,
+                (
+                    _shortcut_key("g"),
+                    _shortcut_text(" Generate Resume "),
+                    _shortcut_key("q"),
+                    _shortcut_text(" Go Back "),
+                    _shortcut_key("s"),
+                    _shortcut_text(" Star "),
+                    _shortcut_key("v"),
+                    _shortcut_text(" Edit "),
+                    _shortcut_key("/"),
+                    _shortcut_text(" Search JD "),
+                    _shortcut_key("Enter"),
+                    _shortcut_text(" Open URL "),
+                    _shortcut_key("Delete"),
+                    _shortcut_text(" Expire"),
+                ),
+                width,
+            )
 
         detail_attrs = _basic_detail_attrs(row)
         description_attrs = _description_attrs(row)
@@ -877,12 +890,19 @@ class _JobBrowser:
         show_terminal=None,
         edit_description: Callable[[JobRow], None] | None = None,
     ) -> bool:
+        if self.detail_search_active:
+            return self._handle_detail_search_key(key, row)
         if key in (ord("q"), 27, curses.KEY_LEFT):
             self.mode = "list"
             self.detail_job_id = None
+            self.detail_search_active = False
             if self.detail_return_index is not None:
                 self.selected = self.detail_return_index
                 self.detail_return_index = None
+            return False
+        if key == ord("/"):
+            self.detail_search_active = True
+            self.detail_search_query = ""
             return False
         if key in (curses.KEY_ENTER, 10, 13) and row is not None:
             self._open_job_url(row, opener)
@@ -939,6 +959,30 @@ class _JobBrowser:
             self.detail_scroll = max(0, self.detail_scroll - 1)
             return False
         return False
+
+    def _handle_detail_search_key(self, key: int, row: JobRow | None) -> bool:
+        if key in (curses.KEY_ENTER, 10, 13, 27):
+            self.detail_search_active = False
+            return False
+        if key in _SEARCH_DELETE_KEYS:
+            self.detail_search_query = self.detail_search_query[:-1]
+            self._scroll_to_detail_search_match(row)
+            return False
+        if 32 <= key <= 126:
+            self.detail_search_query += chr(key)
+            self._scroll_to_detail_search_match(row)
+            return False
+        return False
+
+    def _scroll_to_detail_search_match(self, row: JobRow | None) -> None:
+        if row is None or not self.detail_search_query:
+            return
+        _height, width = self.stdscr.getmaxyx()
+        needle = self.detail_search_query.lower()
+        for index, line in enumerate(_detail_description_lines(row, width)):
+            if needle in line.lower():
+                self.detail_scroll = index
+                return
 
     def _sync_detail_selection(self, rows: Sequence[JobRow]) -> None:
         if self.mode != "detail" or self.detail_job_id is None:
