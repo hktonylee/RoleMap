@@ -398,6 +398,30 @@ def _detail_description_lines(row: JobRow, width: int) -> list[str]:
     return lines
 
 
+def _detail_search_terms(query: str) -> list[str]:
+    return list(dict.fromkeys(term.lower() for term in query.split() if term))
+
+
+def _search_highlight_spans(text: str, terms: Sequence[str]) -> list[tuple[int, int]]:
+    if not terms:
+        return []
+    lowered = text.lower()
+    ordered_terms = sorted(terms, key=len, reverse=True)
+    spans = []
+    index = 0
+    while index < len(text):
+        match = next(
+            (term for term in ordered_terms if lowered.startswith(term, index)),
+            None,
+        )
+        if match is None:
+            index += 1
+            continue
+        spans.append((index, index + len(match)))
+        index += len(match)
+    return spans
+
+
 class _JobBrowser:
     def __init__(
         self,
@@ -578,7 +602,7 @@ class _JobBrowser:
         self._draw_status_message()
 
     def _draw_sort_selector(self) -> None:
-        _height, width = self.stdscr.getmaxyx()
+        _, width = self.stdscr.getmaxyx()
         self._add_line(0, 0, "Choose sort column", width, curses.A_BOLD)
         self._add_shortcut_help_line(
             1,
@@ -690,7 +714,7 @@ class _JobBrowser:
             + max(0, height - _DETAIL_DESCRIPTION_START_ROW)
         ]
         for index, line in enumerate(visible, start=_DETAIL_DESCRIPTION_START_ROW):
-            self._add_line(index, 0, _detail_text(row, line), width, description_attrs)
+            self._add_detail_description_line(index, row, line, width, description_attrs)
         self._draw_status_message()
 
     def _handle_list_key(self, key: int, rows: Sequence[JobRow]) -> bool:
@@ -977,11 +1001,11 @@ class _JobBrowser:
     def _scroll_to_detail_search_match(self, row: JobRow | None) -> None:
         if row is None or not self.detail_search_query:
             return
-        _height, width = self.stdscr.getmaxyx()
-        needle = self.detail_search_query.lower()
+        _, width = self.stdscr.getmaxyx()
+        terms = _detail_search_terms(self.detail_search_query)
         for index, line in enumerate(_detail_description_lines(row, width)):
-            if needle in line.lower():
-                self.detail_scroll = index
+            if _search_highlight_spans(line, terms):
+                self.detail_scroll = max(0, index - 5)
                 return
 
     def _sync_detail_selection(self, rows: Sequence[JobRow]) -> None:
@@ -1118,6 +1142,67 @@ class _JobBrowser:
             self.stdscr.addstr(y, x, clipped, attrs)
         except curses.error:
             pass
+
+    def _add_detail_description_line(
+        self,
+        y: int,
+        row: JobRow,
+        text: str,
+        width: int,
+        attrs: int,
+    ) -> None:
+        spans = (
+            _search_highlight_spans(text, _detail_search_terms(self.detail_search_query))
+            if self.detail_search_active
+            else []
+        )
+        if not spans:
+            self._add_line(y, 0, _detail_text(row, text), width, attrs)
+            return
+
+        offset = 0
+        cursor = 0
+        for start, end in spans:
+            if start > cursor:
+                offset += self._add_detail_description_segment(
+                    y,
+                    offset,
+                    row,
+                    text[cursor:start],
+                    width,
+                    attrs,
+                )
+            offset += self._add_detail_description_segment(
+                y,
+                offset,
+                row,
+                text[start:end],
+                width,
+                attrs | curses.A_REVERSE,
+            )
+            cursor = end
+        if cursor < len(text):
+            self._add_detail_description_segment(
+                y,
+                offset,
+                row,
+                text[cursor:],
+                width,
+                attrs,
+            )
+
+    def _add_detail_description_segment(
+        self,
+        y: int,
+        x: int,
+        row: JobRow,
+        text: str,
+        width: int,
+        attrs: int,
+    ) -> int:
+        rendered = _detail_text(row, text)
+        self._add_line(y, x, rendered, max(0, width - x), attrs)
+        return len(rendered)
 
     def _draw_status_message(self) -> None:
         if not self.status_message:

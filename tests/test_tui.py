@@ -1264,7 +1264,60 @@ class JobBrowserDetailViewTest(unittest.TestCase):
         self.assertFalse(should_quit)
         self.assertTrue(browser.detail_search_active)
         self.assertEqual(browser.detail_search_query, "python")
-        self.assertEqual(browser.detail_scroll, 2)
+        self.assertEqual(browser.detail_scroll, 0)
+
+    def test_jd_search_scroll_keeps_five_context_lines_before_match(self) -> None:
+        browser = _JobBrowser(FakeScreen(), repository=object())
+        browser.mode = "detail"
+        row = {
+            "id": 42,
+            "job_description": "\n".join(
+                [
+                    "Line 0",
+                    "Line 1",
+                    "Line 2",
+                    "Line 3",
+                    "Line 4",
+                    "Line 5",
+                    "Line 6",
+                    "Line 7",
+                    "Python appears here.",
+                    "Line 9",
+                ]
+            ),
+        }
+
+        for key in map(ord, "/python"):
+            should_quit = browser._handle_detail_key(key, row)
+
+        self.assertFalse(should_quit)
+        self.assertEqual(browser.detail_scroll, 3)
+
+    def test_active_jd_search_highlights_all_searched_words(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        browser.detail_search_active = True
+        browser.detail_search_query = "python services"
+
+        with patch.object(tui.curses, "color_pair", return_value=1024):
+            browser._draw_detail(
+                {
+                    "id": 42,
+                    "company_name": "Example Systems",
+                    "job_title": "Staff Engineer",
+                    "job_description": "Python services use Python tooling.",
+                }
+            )
+
+        highlighted = [
+            call
+            for call in screen.calls
+            if call.text in {"Python", "services"} and call.attrs & curses.A_REVERSE
+        ]
+        self.assertEqual(
+            [call.text for call in highlighted],
+            ["Python", "services", "Python"],
+        )
 
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()
