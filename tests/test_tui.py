@@ -1319,6 +1319,56 @@ class JobBrowserDetailViewTest(unittest.TestCase):
             ["Python", "services", "Python"],
         )
 
+    def test_enter_after_jd_search_keeps_matched_words_highlighted(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        row = {
+            "id": 42,
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "job_description": "Build Python services.",
+        }
+
+        for key in map(ord, "/python"):
+            browser._handle_detail_key(key, row)
+        browser._handle_detail_key(curses.KEY_ENTER, row)
+
+        with patch.object(tui.curses, "color_pair", return_value=1024):
+            browser._draw_detail(row)
+
+        highlighted = [
+            call
+            for call in screen.calls
+            if call.text == "Python" and call.attrs & curses.A_REVERSE
+        ]
+        self.assertFalse(browser.detail_search_active)
+        self.assertEqual([call.text for call in highlighted], ["Python"])
+
+    def test_escape_after_jd_search_clears_matched_word_highlights(self) -> None:
+        screen = RecordingScreen()
+        browser = _JobBrowser(screen, repository=object())
+        row = {
+            "id": 42,
+            "company_name": "Example Systems",
+            "job_title": "Staff Engineer",
+            "job_description": "Build Python services.",
+        }
+
+        for key in map(ord, "/python"):
+            browser._handle_detail_key(key, row)
+        browser._handle_detail_key(27, row)
+
+        with patch.object(tui.curses, "color_pair", return_value=1024):
+            browser._draw_detail(row)
+
+        highlighted = [
+            call
+            for call in screen.calls
+            if call.text == "Python" and call.attrs & curses.A_REVERSE
+        ]
+        self.assertFalse(browser.detail_search_active)
+        self.assertEqual(highlighted, [])
+
     def test_detail_help_highlights_enter_shortcut_key(self) -> None:
         screen = RecordingScreen()
         browser = _JobBrowser(screen, repository=object())

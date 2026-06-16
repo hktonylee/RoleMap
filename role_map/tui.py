@@ -443,6 +443,7 @@ class _JobBrowser:
         self.detail_return_index: int | None = None
         self.detail_search_active = False
         self.detail_search_query = ""
+        self.detail_search_highlight_query = ""
         self.status_message = ""
         self.prune_confirmation_pending = False
         self.list_rows: list[JobRow] | None = None
@@ -920,6 +921,8 @@ class _JobBrowser:
             self.mode = "list"
             self.detail_job_id = None
             self.detail_search_active = False
+            self.detail_search_query = ""
+            self.detail_search_highlight_query = ""
             if self.detail_return_index is not None:
                 self.selected = self.detail_return_index
                 self.detail_return_index = None
@@ -927,6 +930,7 @@ class _JobBrowser:
         if key == ord("/"):
             self.detail_search_active = True
             self.detail_search_query = ""
+            self.detail_search_highlight_query = ""
             return False
         if key in (curses.KEY_ENTER, 10, 13) and row is not None:
             self._open_job_url(row, opener)
@@ -985,15 +989,23 @@ class _JobBrowser:
         return False
 
     def _handle_detail_search_key(self, key: int, row: JobRow | None) -> bool:
-        if key in (curses.KEY_ENTER, 10, 13, 27):
+        if key == 27:
             self.detail_search_active = False
+            self.detail_search_query = ""
+            self.detail_search_highlight_query = ""
+            return False
+        if key in (curses.KEY_ENTER, 10, 13):
+            self.detail_search_active = False
+            self.detail_search_highlight_query = self.detail_search_query
             return False
         if key in _SEARCH_DELETE_KEYS:
             self.detail_search_query = self.detail_search_query[:-1]
+            self.detail_search_highlight_query = self.detail_search_query
             self._scroll_to_detail_search_match(row)
             return False
         if 32 <= key <= 126:
             self.detail_search_query += chr(key)
+            self.detail_search_highlight_query = self.detail_search_query
             self._scroll_to_detail_search_match(row)
             return False
         return False
@@ -1151,9 +1163,14 @@ class _JobBrowser:
         width: int,
         attrs: int,
     ) -> None:
-        spans = (
-            _search_highlight_spans(text, _detail_search_terms(self.detail_search_query))
+        highlight_query = (
+            self.detail_search_query
             if self.detail_search_active
+            else self.detail_search_highlight_query
+        )
+        spans = (
+            _search_highlight_spans(text, _detail_search_terms(highlight_query))
+            if highlight_query
             else []
         )
         if not spans:
